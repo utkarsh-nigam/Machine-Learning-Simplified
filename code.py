@@ -1,20 +1,21 @@
 import sys,os
 required_packages=["PyQt5","scipy","itertools","random","matplotlib","pandas","numpy","sklearn","graphviz","pydotplus","collections","warnings","seaborn"]
 
-for my_package in required_packages:
-    try:
-        command_string="conda install "+ my_package+ " --yes"
-        os.system(command_string)
-    except:
-        count=1
+# for my_package in required_packages:
+#     try:
+#         command_string="conda install "+ my_package+ " --yes"
+#         os.system(command_string)
+#     except:
+#         count=1
 
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QWidget, QPushButton, QAction, QComboBox, QLabel,
-                             QGridLayout, QCheckBox, QGroupBox, QVBoxLayout, QHBoxLayout, QLineEdit, QPlainTextEdit)
+                             QGridLayout, QCheckBox, QGroupBox, QVBoxLayout, QHBoxLayout, QLineEdit, QPlainTextEdit,
+                             QInputDialog, QFileDialog, QTableView)
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QAbstractTableModel, QVariant, QModelIndex
 
 from itertools import cycle
 import random
@@ -67,6 +68,169 @@ os.environ["PATH"] += os.pathsep + 'C:\\Program Files (x86)\\graphviz-2.38\\rele
 # Deafault font size for all the windows
 #::--------------------------------
 font_size_window = 'font-size:15px'
+
+
+class PandasModel(QAbstractTableModel):
+    def __init__(self, df = pd.DataFrame(), parent=None):
+        QAbstractTableModel.__init__(self, parent=parent)
+        self._df = df
+        print(self._df.head())
+
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        if role != Qt.DisplayRole:
+            return QVariant()
+
+        if orientation == Qt.Horizontal:
+            try:
+                return self._df.columns.tolist()[section]
+            except (IndexError, ):
+                return QVariant()
+        elif orientation == Qt.Vertical:
+            try:
+                # return self.df.index.tolist()
+                return self._df.index.tolist()[section]
+            except (IndexError, ):
+                return QVariant()
+
+    def data(self, index, role=Qt.DisplayRole):
+        if role != Qt.DisplayRole:
+            return QVariant()
+
+        if not index.isValid():
+            return QVariant()
+
+        return QVariant(str(self._df.iloc[index.row(), index.column()]))
+
+    def setData(self, index, value, role):
+        row = self._df.index[index.row()]
+        col = self._df.columns[index.column()]
+        if hasattr(value, 'toPyObject'):
+            # PyQt4 gets a QVariant
+            value = value.toPyObject()
+        else:
+            # PySide gets an unicode
+            dtype = self._df[col].dtype
+            if dtype != object:
+                value = None if value == '' else dtype.type(value)
+        self._df.set_value(row, col, value)
+        return True
+
+    def rowCount(self, parent=QModelIndex()):
+        return len(self._df.index)
+
+    def columnCount(self, parent=QModelIndex()):
+        return len(self._df.columns)
+
+    def sort(self, column, order):
+        colname = self._df.columns.tolist()[column]
+        self.layoutAboutToBeChanged.emit()
+        self._df.sort_values(colname, ascending= order == Qt.AscendingOrder, inplace=True)
+        self._df.reset_index(inplace=True, drop=True)
+        self.layoutChanged.emit()
+
+
+
+
+
+
+class showTable(QMainWindow):
+
+    def __init__(self):
+        super(showTable, self).__init__()
+        self.Title = "File Browser"
+        self.initUi()
+
+    def initUi(self):
+        self.setWindowTitle(self.Title)
+        self.setStyleSheet(font_size_window)
+        self.main_widget = QWidget(self)
+        self.layout = QGridLayout(self.main_widget)
+        # self.vLayout = QVBoxLayout()
+        # self.hLayout = QHBoxLayout()
+        self.pathLE = QLineEdit()
+        # self.hLayout.addWidget(self.pathLE)
+        self.loadBtn = QPushButton("Select File")
+
+        #self.hLayout.addWidget(self.loadBtn)
+        #self.vLayout.addLayout(self.hLayout)
+        self.pandasTv = QTableView()
+        self.rowCount = QComboBox()
+        self.rowCount.addItems(["100", "500", "1000", "5000"])
+        self.rowCount.currentIndexChanged.connect(self.showData)
+        #self.vLayout.addWidget(self.pandasTv)
+        self.layout.addWidget(self.pathLE, 0, 0, 1, 4)
+        self.layout.addWidget(self.loadBtn, 0, 4, 1, 1)
+        self.layout.addWidget(QLabel("Show Rows:"), 0,5 ,1,1)
+        self.layout.addWidget(self.rowCount, 0, 6, 1, 1)
+
+        self.layout.addWidget(self.pandasTv, 1, 0, 9, 7)
+        #self.loadFile()
+        self.loadBtn.clicked.connect(self.loadFile)
+        self.pandasTv.setSortingEnabled(True)
+        self.setCentralWidget(self.main_widget)
+        self.resize(1800, 900)
+        self.show()
+
+
+
+
+    def loadFile(self):
+        fileName, _ = QFileDialog.getOpenFileName(self, "Open File", "", "CSV Files (*.csv)");
+        self.pathLE.setText(fileName)
+        self.df = pd.read_csv(fileName)
+        self.showData()
+        #print(df.head())
+    def showData(self):
+        try:
+            model = PandasModel(self.df.head(int(self.rowCount.currentText())))
+            #print(model)
+            self.pandasTv.setModel(model)
+        except:
+            pass
+
+
+
+class openFile(QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+        self.openFileNameDialog()
+        # self.title = 'Open File'
+        # self.left = 10
+        # self.top = 10
+        # self.width = 640
+        # self.height = 480
+        # self.initUI()
+
+    def initUI(self):
+        # self.setWindowTitle(self.title)
+        # self.setGeometry(self.left, self.top, self.width, self.height)
+
+        self.openFileNameDialog()
+        # self.openFileNamesDialog()
+        # self.saveFileDialog()
+
+        # self.close()
+
+    def openFileNameDialog(self):
+        options = QFileDialog.Options()
+        # options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getOpenFileName(self, "Open File", "",
+                                                  "CSV (*.csv);; MS Excel (*.xlsx *xls);;All Files (*)", options=options)
+        if fileName:
+            print(fileName)
+            self.close()
+
+    def saveFileDialog(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
+                                                  "All Files (*);;Text Files (*.txt)", options=options)
+        if fileName:
+            print(fileName)
+            # self.wclose()
+
+
 
 
 class VariableDistribution(QMainWindow):
@@ -3333,6 +3497,16 @@ class App(QMainWindow):
         exitButton.setStatusTip('Exit application')
         exitButton.triggered.connect(self.close)
 
+        #::----------------------------------------
+        # Open and Save File
+        #::----------------------------------------
+
+        file1Button = QAction(QIcon('analysis.png'), 'Open File', self)
+        file1Button.setStatusTip('Opens the files')
+        file1Button.triggered.connect(self.show_table)
+        fileMenu.addAction(file1Button)
+
+
         fileMenu.addAction(exitButton)
 
         #::----------------------------------------
@@ -3400,6 +3574,26 @@ class App(QMainWindow):
         MLModelMenu.addAction(MLModel4Button)
 
         self.dialogs = list()
+
+    def file1(self):
+        #def openFileNameDialog(self):
+        options = QFileDialog.Options()
+        # options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getOpenFileName(self, "Open File", "",
+                                                  "CSV (*.csv);; MS Excel (*.xlsx *xls);;All Files (*)",
+                                                  options=options)
+        if fileName:
+            print(fileName)
+            self.show_table()
+
+    def show_table(self):
+        dialog = showTable()
+        self.dialogs.append(dialog)
+        dialog.show()
+        # self.pathLE.setText(fileName)
+        # df = pd.read_csv(fileName)
+        # model = PandasModel(df)
+        # self.pandasTv.setModel(model)
 
     def EDA1(self):
         dialog = VariableDistribution()
