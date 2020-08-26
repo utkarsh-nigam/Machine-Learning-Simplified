@@ -69,6 +69,7 @@ os.environ["PATH"] += os.pathsep + 'C:\\Program Files (x86)\\graphviz-2.38\\rele
 #::--------------------------------
 font_size_window = 'font-size:15px'
 
+data=pd.DataFrame()
 
 class PandasModel(QAbstractTableModel):
     def __init__(self, df = pd.DataFrame(), parent=None):
@@ -129,10 +130,6 @@ class PandasModel(QAbstractTableModel):
         self.layoutChanged.emit()
 
 
-
-
-
-
 class showTable(QMainWindow):
 
     def __init__(self):
@@ -175,9 +172,12 @@ class showTable(QMainWindow):
 
 
     def loadFile(self):
+        global data
         fileName, _ = QFileDialog.getOpenFileName(self, "Open File", "", "CSV Files (*.csv)");
         self.pathLE.setText(fileName)
         self.df = pd.read_csv(fileName)
+        data=self.df.copy()
+        attrition_data()
         self.showData()
         #print(df.head())
     def showData(self):
@@ -231,6 +231,120 @@ class openFile(QMainWindow):
             # self.wclose()
 
 
+
+class VariableInformation(QMainWindow):
+    #::---------------------------------------------------------
+    # This class creates a canvas with a plot to show the
+    # distribution of continuous features in the dataset
+    #::---------------------------------------------------------
+    send_fig = pyqtSignal(str)
+
+    def __init__(self):
+        super(VariableInformation, self).__init__()
+
+        self.Title = "Variable Information"
+        self.main_widget = QWidget(self)
+
+        self.setWindowTitle(self.Title)
+        self.setStyleSheet(font_size_window)
+
+        self.catCheck = QComboBox()
+        self.catCheck.addItems(["No","Yes"])
+        self.catCheck.currentIndexChanged.connect(self.catCheckUpdate)
+
+        self.catCheck = QComboBox()
+        self.catCheck.addItems(["No", "Yes"])
+        self.catCheck.currentIndexChanged.connect(self.catCheckUpdate)
+
+
+
+
+
+
+
+
+
+
+
+
+
+        self.featuresList=personal_features
+        self.dropdown1 = QComboBox()
+        self.dropdown1.addItems(["Personal", "Organisation", "Commutation"])
+        self.dropdown1.currentIndexChanged.connect(self.updateCategory)
+        self.dropdown2 = QComboBox()
+        self.label = QLabel("A plot:")
+        self.filter_data = QWidget(self)
+        self.filter_data.layout = QGridLayout(self.filter_data)
+
+        self.filter_data.layout.addWidget(QLabel("Choose Data Filter:"), 0, 0, 1, 1)
+
+        self.filter_radio_button = QRadioButton("All Data")
+        self.filter_radio_button.setChecked(True)
+        self.filter_radio_button.filter = "All_Data"
+        self.set_Filter = "All_Data"
+        self.filter_radio_button.toggled.connect(self.onFilterClicked)
+        self.filter_data.layout.addWidget(self.filter_radio_button, 0, 1, 1, 1)
+
+        self.filter_radio_button = QRadioButton("Attrition: Yes")
+        self.filter_radio_button.filter = "Yes"
+        self.filter_radio_button.toggled.connect(self.onFilterClicked)
+        self.filter_data.layout.addWidget(self.filter_radio_button, 0, 2, 1, 1)
+
+        self.filter_radio_button = QRadioButton("Attrition: No")
+        self.filter_radio_button.filter = "No"
+        self.filter_radio_button.toggled.connect(self.onFilterClicked)
+        self.filter_data.layout.addWidget(self.filter_radio_button, 0, 3, 1, 1)
+
+        self.btnCreateGraph = QPushButton("Save")
+        self.btnCreateGraph.clicked.connect(self.update)
+        self.filter_data.layout.addWidget(self.btnCreateGraph, 1, 0, 1, 4)
+
+        self.groupBox1 = QGroupBox('Distribution')
+        self.groupBox1Layout = QVBoxLayout()
+        self.groupBox1.setLayout(self.groupBox1Layout)
+        self.groupBox1Layout.addWidget(self.canvas)
+
+        self.groupBox2 = QGroupBox('Summary')
+        self.groupBox2Layout = QVBoxLayout()
+        self.groupBox2.setLayout(self.groupBox2Layout)
+        self.graph_summary = QPlainTextEdit()
+        self.groupBox2Layout.addWidget(self.graph_summary)
+
+        self.layout = QGridLayout(self.main_widget)
+        self.layout.addWidget(QLabel("Select Feature Category:"), 0, 0, 1, 1)
+        self.layout.addWidget(self.dropdown1, 0, 1, 1, 1)
+        self.layout.addWidget(QLabel(""), 0, 2, 1, 1)
+        self.layout.addWidget(QLabel("Select Features:"), 1, 0, 1, 1)
+        self.layout.addWidget(self.dropdown2, 1, 1, 1, 1)
+        self.layout.addWidget(self.filter_data, 0, 3, 2, 2)
+        self.layout.addWidget(self.groupBox1, 2, 0, 5, 5)
+
+        self.setCentralWidget(self.main_widget)
+        self.resize(1200, 700)
+        self.show()
+        self.updateCategory()
+
+    def updateCategory(self):
+        self.dropdown2.clear()
+        feature_category = self.dropdown1.currentText()
+        if(feature_category=="Personal"):
+            self.featuresList=list(set(continuous_features) & set(personal_features))
+        elif (feature_category == "Organisation"):
+            self.featuresList = list(set(continuous_features) & set(organisation_features))
+        elif (feature_category == "Commutation"):
+            self.featuresList = list(set(continuous_features) & set(commution_features))
+        del feature_category
+        self.dropdown2.addItems(self.featuresList)
+        del self.featuresList
+
+    def onFilterClicked(self):
+        self.filter_radio_button = self.sender()
+        if self.filter_radio_button.isChecked():
+            self.set_Filter=self.filter_radio_button.filter
+            self.update()
+
+    def update(self):
 
 
 class VariableDistribution(QMainWindow):
@@ -3506,6 +3620,11 @@ class App(QMainWindow):
         file1Button.triggered.connect(self.show_table)
         fileMenu.addAction(file1Button)
 
+        file2Button = QAction(QIcon('analysis.png'), 'Explore Variables', self)
+        file2Button.setStatusTip('Variables Information')
+        file2Button.triggered.connect(self.variables_info)
+        fileMenu.addAction(file2Button)
+
 
         fileMenu.addAction(exitButton)
 
@@ -3595,6 +3714,15 @@ class App(QMainWindow):
         # model = PandasModel(df)
         # self.pandasTv.setModel(model)
 
+    def variables_info(self):
+        dialog = variablesInfo()
+        self.dialogs.append(dialog)
+        dialog.show()
+        # self.pathLE.setText(fileName)
+        # df = pd.read_csv(fileName)
+        # model = PandasModel(df)
+        # self.pandasTv.setModel(model)
+
     def EDA1(self):
         dialog = VariableDistribution()
         self.dialogs.append(dialog)
@@ -3664,8 +3792,8 @@ def attrition_data():
     global continuous_features
     global categorical_features
 
-    attr_data = pd.read_csv('HR-Employee-Attrition.csv')
-    all_columns = attr_data.columns.tolist()
+    #attr_data = pd.read_csv('HR-Employee-Attrition.csv')
+    all_columns = data.columns.tolist()
 
     all_columns.remove("Attrition")
     features_list=all_columns.copy()
