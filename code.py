@@ -8,9 +8,11 @@ required_packages=["PyQt5","scipy","itertools","random","matplotlib","pandas","n
 #     except:
 #         count=1
 
+import shelve
+
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QWidget, QPushButton, QAction, QComboBox, QLabel,
                              QGridLayout, QCheckBox, QGroupBox, QVBoxLayout, QHBoxLayout, QLineEdit, QPlainTextEdit,
-                             QInputDialog, QFileDialog, QTableView)
+                             QInputDialog, QFileDialog, QTableView, QSpinBox)
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot
@@ -69,13 +71,12 @@ os.environ["PATH"] += os.pathsep + 'C:\\Program Files (x86)\\graphviz-2.38\\rele
 #::--------------------------------
 font_size_window = 'font-size:15px'
 
-data=pd.DataFrame()
+#data=pd.DataFrame()
 
 class PandasModel(QAbstractTableModel):
     def __init__(self, df = pd.DataFrame(), parent=None):
         QAbstractTableModel.__init__(self, parent=parent)
         self._df = df
-        print(self._df.head())
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role != Qt.DisplayRole:
@@ -155,12 +156,13 @@ class showTable(QMainWindow):
         self.rowCount.addItems(["100", "500", "1000", "5000"])
         self.rowCount.currentIndexChanged.connect(self.showData)
         #self.vLayout.addWidget(self.pandasTv)
-        self.layout.addWidget(self.pathLE, 0, 0, 1, 4)
-        self.layout.addWidget(self.loadBtn, 0, 4, 1, 1)
-        self.layout.addWidget(QLabel("Show Rows:"), 0,5 ,1,1)
-        self.layout.addWidget(self.rowCount, 0, 6, 1, 1)
+        self.layout.addWidget(self.loadBtn, 0, 0, 1, 1)
+        self.layout.addWidget(self.pathLE, 0, 1, 1, 5)
+        self.layout.addWidget(QLabel(""),0,6,1,1)
+        self.layout.addWidget(QLabel("Show Rows:"), 0,7 ,1,1)
+        self.layout.addWidget(self.rowCount, 0, 8, 1, 1)
 
-        self.layout.addWidget(self.pandasTv, 1, 0, 9, 7)
+        self.layout.addWidget(self.pandasTv, 1, 0, 9, 9)
         #self.loadFile()
         self.loadBtn.clicked.connect(self.loadFile)
         self.pandasTv.setSortingEnabled(True)
@@ -173,11 +175,34 @@ class showTable(QMainWindow):
 
     def loadFile(self):
         global data
+        global featuresList
+        global featuresDtypes
+        global ratioFeatures
+        global ordinalFeatures
+        global nominalFeatures
+        global featureCategoryMapping
+        global categoryNameList
+        global fileNameGlobal
+
+
+        ratioFeatures=[]
+        ordinalFeatures=[]
+        nominalFeatures=[]
+        featureCategoryMapping=dict()
+        categoryNameList=["No Category"]
+
         fileName, _ = QFileDialog.getOpenFileName(self, "Open File", "", "CSV Files (*.csv)");
+        fileNameGlobal = fileName
         self.pathLE.setText(fileName)
         self.df = pd.read_csv(fileName)
         data=self.df.copy()
-        attrition_data()
+        featuresList = data.columns.tolist()
+        featuresDtypes=data.dtypes.tolist()
+        for i in range(len(featuresList)):
+            if (str(featuresDtypes[i])=="int64"):
+                ratioFeatures.append(featuresList[i])
+            else:
+                nominalFeatures.append(featuresList[i])
         self.showData()
         #print(df.head())
     def showData(self):
@@ -188,48 +213,55 @@ class showTable(QMainWindow):
         except:
             pass
 
-
-
-class openFile(QMainWindow):
+class viewData(QMainWindow):
 
     def __init__(self):
-        super().__init__()
-        self.openFileNameDialog()
-        # self.title = 'Open File'
-        # self.left = 10
-        # self.top = 10
-        # self.width = 640
-        # self.height = 480
-        # self.initUI()
+        super(viewData, self).__init__()
+        self.Title = "Data"
+        self.initUi()
 
-    def initUI(self):
-        # self.setWindowTitle(self.title)
-        # self.setGeometry(self.left, self.top, self.width, self.height)
+    def initUi(self):
+        self.setWindowTitle(self.Title)
+        self.setStyleSheet(font_size_window)
+        self.main_widget = QWidget(self)
+        self.layout = QGridLayout(self.main_widget)
+        # self.vLayout = QVBoxLayout()
+        # self.hLayout = QHBoxLayout()
+        self.pathLE = QLineEdit()
+        self.pathLE.setText(fileNameGlobal)
+        self.pathLE.setEnabled(False)
+        # self.hLayout.addWidget(self.pathLE)
+        #self.loadBtn = QPushButton("Select File")
 
-        self.openFileNameDialog()
-        # self.openFileNamesDialog()
-        # self.saveFileDialog()
+        #self.hLayout.addWidget(self.loadBtn)
+        #self.vLayout.addLayout(self.hLayout)
+        self.pandasTv = QTableView()
+        self.rowCount = QComboBox()
+        self.rowCount.addItems(["100", "500", "1000", "5000"])
+        self.rowCount.currentIndexChanged.connect(self.showData)
+        #self.vLayout.addWidget(self.pandasTv)
+        self.layout.addWidget(QLabel("File Source:"), 0, 0, 1, 1)
+        self.layout.addWidget(self.pathLE, 0, 1, 1, 5)
+        self.layout.addWidget(QLabel(""), 0, 6, 1, 1)
+        self.layout.addWidget(QLabel("Show Rows:"), 0,7 ,1,1)
+        self.layout.addWidget(self.rowCount, 0, 8, 1, 1)
 
-        # self.close()
+        self.layout.addWidget(self.pandasTv, 1, 0, 9, 9)
+        #self.loadFile()
+        self.pandasTv.setSortingEnabled(True)
+        self.setCentralWidget(self.main_widget)
+        self.resize(1800, 900)
+        self.show()
+        self.showData()
 
-    def openFileNameDialog(self):
-        options = QFileDialog.Options()
-        # options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self, "Open File", "",
-                                                  "CSV (*.csv);; MS Excel (*.xlsx *xls);;All Files (*)", options=options)
-        if fileName:
-            print(fileName)
-            self.close()
-
-    def saveFileDialog(self):
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
-                                                  "All Files (*);;Text Files (*.txt)", options=options)
-        if fileName:
-            print(fileName)
-            # self.wclose()
-
+    def showData(self):
+        try:
+            self.df=data.copy()
+            model = PandasModel(self.df.head(int(self.rowCount.currentText())))
+            #print(model)
+            self.pandasTv.setModel(model)
+        except:
+            print("Error")
 
 
 class VariableInformation(QMainWindow):
@@ -240,111 +272,287 @@ class VariableInformation(QMainWindow):
     send_fig = pyqtSignal(str)
 
     def __init__(self):
+
         super(VariableInformation, self).__init__()
 
         self.Title = "Variable Information"
         self.main_widget = QWidget(self)
 
+        self.catWidgetStatus = False
+        self.catNameWidgetStatus = False
+        self.featureWidgetStatus = False
+        self.featureCatWidgetStatus = False
+
         self.setWindowTitle(self.Title)
         self.setStyleSheet(font_size_window)
+        self.layout = QGridLayout(self.main_widget)
+
+        self.viewWidget=QGroupBox('Categorise Variables')
+        self.viewWidgetLayout = QGridLayout()
+        self.viewWidget.setLayout(self.viewWidgetLayout)
+
+        self.viewDataWidget=QPushButton("View Data")
+        self.viewDataWidget.clicked.connect(self.viewDataWidgetFunction)
+
+        self.catWidget = QGroupBox('Categorise Variables')
+        self.catWidgetLayout = QGridLayout()
+        self.catWidget.setLayout(self.catWidgetLayout)
+
+        self.selectTargetWidget = QGroupBox('Select Target Variable')
+        self.selectTargetWidgetLayout = QGridLayout()
+        self.selectTargetWidget.setLayout(self.selectTargetWidgetLayout)
+
+        self.featureDetailWidget = QGroupBox('Feature Details')
+        self.featureDetailWidgetLayout = QGridLayout()
+        self.featureDetailWidget.setLayout(self.featureDetailWidgetLayout)
 
         self.catCheck = QComboBox()
         self.catCheck.addItems(["No","Yes"])
         self.catCheck.currentIndexChanged.connect(self.catCheckUpdate)
 
-        self.catCheck = QComboBox()
-        self.catCheck.addItems(["No", "Yes"])
-        self.catCheck.currentIndexChanged.connect(self.catCheckUpdate)
+        self.chooseTarget = QComboBox()
+        self.chooseTarget.addItems([""])
+
+        self.catCurrentCount = 0
+        self.catDict = dict()
+        self.catCount = QSpinBox()
+        self.catCount.setRange(2, 5)
+        self.catCount.setValue(2)
+        self.catCount.valueChanged.connect(self.catCountUpdate)
+        self.catCount.setEnabled(self.catNameWidgetStatus)
+
+
+        self.catScrollLayout = QFormLayout()
+
+        self.featureScrollLayout = QFormLayout()
+
+        # scroll area widget contents
+        self.catScrollWidget = QWidget()
+        self.catScrollWidget.setLayout(self.catScrollLayout)
+        self.catScrollWidget.setEnabled(self.catNameWidgetStatus)
+
+        self.featureScrollWidget = QWidget()
+        self.featureScrollWidget.setLayout(self.featureScrollLayout)
+
+        # scroll area
+        self.catScrollArea = QScrollArea()
+        self.catScrollArea.setWidgetResizable(True)
+        self.catScrollArea.setWidget(self.catScrollWidget)
+
+        self.featureScrollArea = QScrollArea()
+        self.featureScrollArea.setWidgetResizable(True)
+        self.featureScrollArea.setWidget(self.featureScrollWidget)
+
+
+        self.goBackToCategory = QPushButton("Back")
+        self.goBackToCategory.clicked.connect(self.categoryWidgetFunction)
+
+        self.goBackToFeature = QPushButton("Back")
+        self.goBackToFeature.clicked.connect(self.featureWidgetFunction)
+
+        self.viewFeatureDetails = QPushButton("Proceed")
+        self.viewFeatureDetails.clicked.connect(self.featureWidgetFunction)
+
+        self.targetVariableSelection = QPushButton("Proceed")
+        self.targetVariableSelection.clicked.connect(self.targetWidgetFunction)
+
+
+        self.saveInfo = QPushButton("Save and Exit")
+        self.saveInfo.clicked.connect(self.saveVariableDetailsFunction)
+
+
+        # add all main to the main vLayout
+        self.viewWidgetLayout.addWidget(QLabel("Click to View Data:"), 0, 0, 2, 2)
+        self.viewWidgetLayout.addWidget(self.viewDataWidget, 0, 2, 2, 2)
+
+
+        self.catWidgetLayout.addWidget(QLabel("Add Categories:"), 0, 0, 1, 1)
+        self.catWidgetLayout.addWidget(self.catCheck, 0, 1, 1, 1)
+        self.catWidgetLayout.addWidget(QLabel("Choose number of categories:"), 1, 0, 1, 1)
+        self.catWidgetLayout.addWidget(self.catCount, 1, 1, 1, 1)
+        self.catWidgetLayout.addWidget(self.catScrollArea, 2, 0, 7, 2)
+        self.catWidgetLayout.addWidget(self.viewFeatureDetails, 9, 0, 1, 2)
+        self.catWidget.setEnabled(True)
+
+        self.selectTargetWidgetLayout.addWidget(QLabel("Choose Target Variable:"), 0, 0, 1, 1)
+        self.selectTargetWidgetLayout.addWidget(self.chooseTarget, 0, 1, 1, 1)
+        self.selectTargetWidgetLayout.addWidget(self.goBackToFeature, 1, 0, 1, 1)
+        self.selectTargetWidgetLayout.addWidget(self.saveInfo, 1, 1, 1, 1)
+        self.selectTargetWidget.setEnabled(False)
+
+        self.featureDetailWidgetLayout.addWidget(self.featureScrollArea, 0, 0, 9, 4)
+        self.featureDetailWidgetLayout.addWidget(self.goBackToCategory, 9, 0, 1, 2)
+        self.featureDetailWidgetLayout.addWidget(self.targetVariableSelection, 9, 2, 1, 2)
+        self.featureDetailWidget.setEnabled(False)
+
+
+        self.layout.addWidget(self.viewWidget, 0, 0, 2, 2)
+        self.layout.addWidget(self.catWidget, 2, 0, 6, 2)
+        self.layout.addWidget(self.selectTargetWidget, 8, 0, 2, 2)
+        self.layout.addWidget(self.featureDetailWidget, 0, 3, 10, 4)
 
 
 
-
-
-
-
-
-
-
-
-
-
-        self.featuresList=personal_features
-        self.dropdown1 = QComboBox()
-        self.dropdown1.addItems(["Personal", "Organisation", "Commutation"])
-        self.dropdown1.currentIndexChanged.connect(self.updateCategory)
-        self.dropdown2 = QComboBox()
-        self.label = QLabel("A plot:")
-        self.filter_data = QWidget(self)
-        self.filter_data.layout = QGridLayout(self.filter_data)
-
-        self.filter_data.layout.addWidget(QLabel("Choose Data Filter:"), 0, 0, 1, 1)
-
-        self.filter_radio_button = QRadioButton("All Data")
-        self.filter_radio_button.setChecked(True)
-        self.filter_radio_button.filter = "All_Data"
-        self.set_Filter = "All_Data"
-        self.filter_radio_button.toggled.connect(self.onFilterClicked)
-        self.filter_data.layout.addWidget(self.filter_radio_button, 0, 1, 1, 1)
-
-        self.filter_radio_button = QRadioButton("Attrition: Yes")
-        self.filter_radio_button.filter = "Yes"
-        self.filter_radio_button.toggled.connect(self.onFilterClicked)
-        self.filter_data.layout.addWidget(self.filter_radio_button, 0, 2, 1, 1)
-
-        self.filter_radio_button = QRadioButton("Attrition: No")
-        self.filter_radio_button.filter = "No"
-        self.filter_radio_button.toggled.connect(self.onFilterClicked)
-        self.filter_data.layout.addWidget(self.filter_radio_button, 0, 3, 1, 1)
-
-        self.btnCreateGraph = QPushButton("Save")
-        self.btnCreateGraph.clicked.connect(self.update)
-        self.filter_data.layout.addWidget(self.btnCreateGraph, 1, 0, 1, 4)
-
-        self.groupBox1 = QGroupBox('Distribution')
-        self.groupBox1Layout = QVBoxLayout()
-        self.groupBox1.setLayout(self.groupBox1Layout)
-        self.groupBox1Layout.addWidget(self.canvas)
-
-        self.groupBox2 = QGroupBox('Summary')
-        self.groupBox2Layout = QVBoxLayout()
-        self.groupBox2.setLayout(self.groupBox2Layout)
-        self.graph_summary = QPlainTextEdit()
-        self.groupBox2Layout.addWidget(self.graph_summary)
-
-        self.layout = QGridLayout(self.main_widget)
-        self.layout.addWidget(QLabel("Select Feature Category:"), 0, 0, 1, 1)
-        self.layout.addWidget(self.dropdown1, 0, 1, 1, 1)
-        self.layout.addWidget(QLabel(""), 0, 2, 1, 1)
-        self.layout.addWidget(QLabel("Select Features:"), 1, 0, 1, 1)
-        self.layout.addWidget(self.dropdown2, 1, 1, 1, 1)
-        self.layout.addWidget(self.filter_data, 0, 3, 2, 2)
-        self.layout.addWidget(self.groupBox1, 2, 0, 5, 5)
 
         self.setCentralWidget(self.main_widget)
-        self.resize(1200, 700)
+        self.resize(1800, 900)
         self.show()
-        self.updateCategory()
+        self.addWidget()
+        self.addWidget()
 
-    def updateCategory(self):
-        self.dropdown2.clear()
-        feature_category = self.dropdown1.currentText()
-        if(feature_category=="Personal"):
-            self.featuresList=list(set(continuous_features) & set(personal_features))
-        elif (feature_category == "Organisation"):
-            self.featuresList = list(set(continuous_features) & set(organisation_features))
-        elif (feature_category == "Commutation"):
-            self.featuresList = list(set(continuous_features) & set(commution_features))
-        del feature_category
-        self.dropdown2.addItems(self.featuresList)
-        del self.featuresList
+        self.flag=0
 
-    def onFilterClicked(self):
-        self.filter_radio_button = self.sender()
-        if self.filter_radio_button.isChecked():
-            self.set_Filter=self.filter_radio_button.filter
-            self.update()
+    def viewDataWidgetFunction(self):
+        self.w = viewData()
+        self.w.show()
 
-    def update(self):
+    def catCheckUpdate(self):
+        if (self.catCheck.currentText() == "Yes"):
+            self.catNameWidgetStatus = True
+
+        else:
+            self.catNameWidgetStatus = False
+        self.catCount.setEnabled(self.catNameWidgetStatus)
+        self.catScrollWidget.setEnabled(self.catNameWidgetStatus)
+
+
+    def catCountUpdate(self):
+        if self.catCount.value() > self.catCurrentCount:
+            while (self.catCount.value() > self.catCurrentCount):
+                self.addWidget()
+        elif self.catCount.value() < self.catCurrentCount:
+            while (self.catCount.value() < self.catCurrentCount):
+                self.delWidget()
+
+    def addWidget(self):
+        self.catCurrentCount += 1
+        s = "s" + str(self.catCurrentCount)
+        self.catDict[s] = QLineEdit("Enter Category " + str(self.catCurrentCount))
+        self.catScrollLayout.addRow(self.catDict[s])
+
+    def delWidget(self):
+        t = "s" + str(self.catCurrentCount)
+        self.catDict[t].deleteLater()
+        self.catCurrentCount -= 1
+
+
+    def categoryWidgetFunction(self):
+        #self.featureWidgetStatus=True
+
+        self.selectTargetWidget.setEnabled(False)
+        self.featureDetailWidget.setEnabled(False)
+        self.catWidget.setEnabled(True)
+
+    def featureWidgetFunction(self):
+        #self.featureWidgetStatus=True
+        self.catWidget.setEnabled(False)
+        self.selectTargetWidget.setEnabled(False)
+        self.featureDetailWidget.setEnabled(True)
+        if (self.flag==1):
+            for j in range(len(featuresList)):
+                self.featureDict["f" + str(j)].deleteLater()
+        global featureTypeOptions
+        global dataTypeDict
+        dataTypeDict = {"int64": "Continuous","float64": "Continuous", "object": "Categorical"}
+        if (self.catCheck.currentText()=="Yes"):
+            self.featureCatWidgetStatus=True
+            categoryNameList=[]
+            for i in range(self.catCount.value()):
+                s = "s" + str(i+1)
+                categoryNameList.append(self.catDict[s].text())
+        else:
+            self.featureCatWidgetStatus=False
+            categoryNameList=["No Category"]
+
+        self.featureCurrentCount = 0
+        self.featureDict = dict()
+        for currentFeature in featuresList:
+            s = "f" + str(self.featureCurrentCount)
+
+            self.featureDict[s] = QGroupBox()
+            self.featureDict[s+"Layout"] = QGridLayout()
+            self.featureDict[s].setLayout(self.featureDict[s+"Layout"])
+
+            self.featureDict[s + "Label"] = QLabel(str(currentFeature))
+            self.featureDict[s + "TypeList"] = QComboBox()
+            self.featureDict[s + "TypeList"].addItems(["Continuous", "Categorical", "Ordinal"])
+            self.featureDict[s + "TypeList"].setCurrentText(dataTypeDict[str(featuresDtypes[self.featureCurrentCount])])
+
+            self.featureDict[s + "catList"] = QComboBox()
+            self.featureDict[s + "catList"].addItems(categoryNameList)
+            self.featureDict[s + "catList"].setEnabled(self.featureCatWidgetStatus)
+
+            self.featureDict[s + "Layout"].addWidget(self.featureDict[s + "Label"], 0, 0, 1, 2)
+            self.featureDict[s + "Layout"].addWidget(self.featureDict[s + "TypeList"], 0, 2, 1, 1)
+            self.featureDict[s + "Layout"].addWidget(self.featureDict[s + "catList"], 0, 3, 1, 1)
+
+            self.featureScrollLayout.addRow(self.featureDict[s])
+            self.featureCurrentCount += 1
+        self.flag=1
+
+    def targetWidgetFunction(self):
+        #self.featureWidgetStatus=True
+        self.catWidget.setEnabled(False)
+        self.featureDetailWidget.setEnabled(False)
+        self.saveInfo.setEnabled(False)
+        self.selectTargetWidget.setEnabled(True)
+
+        ratioFeatures = []
+        nominalFeatures = []
+        ordinalFeatures = []
+        featureCategoryMapping = dict()
+        global categoryNameVariables
+        categoryNameVariables = dict()
+        if len(categoryNameList) > 1:
+            for val in categoryNameList:
+                categoryNameVariables[categoryNameList] = []
+        else:
+            categoryNameVariables["No Category"] = []
+        for k in range(len(featuresList)):
+            a = "f" + str(k)
+            if (self.featureDict[a + "TypeList"].currentText() == "Continuous"):
+                ratioFeatures.append(featuresList[k])
+            elif (self.featureDict[a + "TypeList"].currentText() == "Categorical"):
+                nominalFeatures.append(featuresList[k])
+            else:
+                ordinalFeatures.append(featuresList[k])
+            if len(categoryNameList) > 1:
+                categoryNameVariables[self.featureDict[a + "catList"].currentText()].append(featuresList[k])
+            else:
+                categoryNameVariables["No Category"].append(featuresList[k])
+                # featureCategoryMapping[featuresList[k]]=self.featureDict[a + "catList"].currentText()
+
+        if len(nominalFeatures)>0:
+            self.chooseTarget.clear()
+            self.chooseTarget.addItems(nominalFeatures)
+            self.saveInfo.setEnabled(True)
+        else:
+            self.chooseTarget.clear()
+            self.chooseTarget.addItems(["No Categorical Variable"])
+
+
+    def saveVariableDetailsFunction(self):
+        options = QFileDialog.Options()
+        fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
+                                                  "Shelve Files (*.out)", options=options)
+        if fileName:
+            print(fileName)
+            #fileName += '.out'
+            my_shelf = shelve.open(fileName, 'n')  # 'n' for new
+            globalKeys = list(globals().keys())
+            for key in globalKeys:
+                print(key)
+                try:
+                    my_shelf[key] = globals()[key]
+                except TypeError:
+                    #
+                    # __builtins__, my_shelf, and imported modules can not be shelved.
+                    #
+                    print('ERROR shelving: {0}'.format(key))
+            my_shelf.close()
+        self.close()
+
+
 
 
 class VariableDistribution(QMainWindow):
@@ -356,6 +564,11 @@ class VariableDistribution(QMainWindow):
 
     def __init__(self):
         super(VariableDistribution, self).__init__()
+        if (len(categoryNameList)>1):
+            self.catWidgetStatus=True
+        else:
+            self.catWidgetStatus = False
+
 
         self.Title = "EDA: Variable Distribution"
         self.main_widget = QWidget(self)
@@ -371,10 +584,11 @@ class VariableDistribution(QMainWindow):
         self.canvas.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
         self.canvas.updateGeometry()
-        self.featuresList=personal_features
+        self.featuresList=categoryNameVariables[categoryNameList[0]]
         self.dropdown1 = QComboBox()
-        self.dropdown1.addItems(["Personal", "Organisation", "Commutation"])
+        self.dropdown1.addItems(categoryNameList)
         self.dropdown1.currentIndexChanged.connect(self.updateCategory)
+        self.dropdown1.setEnabled(self.catWidgetStatus)
         self.dropdown2 = QComboBox()
         self.label = QLabel("A plot:")
         self.filter_data = QWidget(self)
@@ -452,10 +666,10 @@ class VariableDistribution(QMainWindow):
         self.ax.clear()
         cat1 = self.dropdown2.currentText()
         if (self.set_Filter=="Yes" or self.set_Filter=="No"):
-            self.filtered_data=attr_data.copy()
+            self.filtered_data=data.copy()
             self.filtered_data = self.filtered_data[self.filtered_data["Attrition"]==self.set_Filter]
         else:
-            self.filtered_data = attr_data.copy()
+            self.filtered_data = data.copy()
 
         self.ax.hist(self.filtered_data[cat1], bins=10, facecolor='green', alpha=0.5)
         self.ax.set_title(cat1)
@@ -646,10 +860,10 @@ class VariableRelation(QMainWindow):
         colors=["b", "r", "g", "y", "k", "c"]
         self.ax.clear()
         if (self.set_Filter=="Yes" or self.set_Filter=="No"):
-            self.filtered_data=attr_data.copy()
+            self.filtered_data=data.copy()
             self.filtered_data = self.filtered_data[self.filtered_data["Attrition"]==self.set_Filter]
         else:
-            self.filtered_data = attr_data.copy()
+            self.filtered_data = data.copy()
 
         graph_feature1 = self.dropdown2.currentText()
         graph_feature2 = self.dropdown4.currentText()
@@ -775,7 +989,7 @@ class AttritionRelation(QMainWindow):
         colors=["b", "r", "g", "y", "k", "c"]
         self.ax1.clear()
         self.ax2.clear()
-        self.filtered_data = attr_data.copy()
+        self.filtered_data = data.copy()
         graph_feature1 = self.dropdown2.currentText()
         category_values=[]
         val1 = []
@@ -1137,183 +1351,183 @@ class RandomForest(QMainWindow):
         self.list_corr_features = pd.DataFrame([])
         if self.feature0.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[0]]
+                self.list_corr_features = data[features_list[0]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[0]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[0]]], axis=1)
 
         if self.feature1.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[1]]
+                self.list_corr_features = data[features_list[1]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[1]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[1]]], axis=1)
 
         if self.feature2.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[2]]
+                self.list_corr_features = data[features_list[2]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[2]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[2]]], axis=1)
 
         if self.feature3.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[3]]
+                self.list_corr_features = data[features_list[3]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[3]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[3]]], axis=1)
 
         if self.feature4.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[4]]
+                self.list_corr_features = data[features_list[4]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[4]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[4]]], axis=1)
 
         if self.feature5.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[5]]
+                self.list_corr_features = data[features_list[5]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[5]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[5]]], axis=1)
 
         if self.feature6.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[6]]
+                self.list_corr_features = data[features_list[6]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[6]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[6]]], axis=1)
 
         if self.feature7.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[7]]
+                self.list_corr_features = data[features_list[7]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[7]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[7]]], axis=1)
 
         if self.feature8.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[8]]
+                self.list_corr_features = data[features_list[8]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[8]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[8]]], axis=1)
 
         if self.feature9.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[9]]
+                self.list_corr_features = data[features_list[9]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[9]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[9]]], axis=1)
 
         if self.feature10.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[10]]
+                self.list_corr_features = data[features_list[10]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[10]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[10]]], axis=1)
 
         if self.feature11.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[11]]
+                self.list_corr_features = data[features_list[11]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[11]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[11]]], axis=1)
 
         if self.feature12.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[12]]
+                self.list_corr_features = data[features_list[12]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[12]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[12]]], axis=1)
 
         if self.feature13.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[13]]
+                self.list_corr_features = data[features_list[13]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[13]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[13]]], axis=1)
 
         if self.feature14.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[14]]
+                self.list_corr_features = data[features_list[14]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[14]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[14]]], axis=1)
 
         if self.feature15.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[15]]
+                self.list_corr_features = data[features_list[15]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[15]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[15]]], axis=1)
 
         if self.feature16.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[16]]
+                self.list_corr_features = data[features_list[16]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[16]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[16]]], axis=1)
 
         if self.feature17.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[17]]
+                self.list_corr_features = data[features_list[17]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[17]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[17]]], axis=1)
 
         if self.feature18.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[18]]
+                self.list_corr_features = data[features_list[18]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[18]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[18]]], axis=1)
 
         if self.feature19.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[19]]
+                self.list_corr_features = data[features_list[19]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[19]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[19]]], axis=1)
 
         if self.feature20.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[20]]
+                self.list_corr_features = data[features_list[20]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[20]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[20]]], axis=1)
 
         if self.feature21.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[21]]
+                self.list_corr_features = data[features_list[21]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[21]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[21]]], axis=1)
 
         if self.feature22.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[22]]
+                self.list_corr_features = data[features_list[22]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[22]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[22]]], axis=1)
 
         if self.feature23.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[23]]
+                self.list_corr_features = data[features_list[23]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[23]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[23]]], axis=1)
 
         if self.feature24.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[24]]
+                self.list_corr_features = data[features_list[24]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[24]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[24]]], axis=1)
 
         if self.feature25.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[25]]
+                self.list_corr_features = data[features_list[25]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[25]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[25]]], axis=1)
 
         if self.feature26.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[26]]
+                self.list_corr_features = data[features_list[26]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[26]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[26]]], axis=1)
 
         if self.feature27.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[27]]
+                self.list_corr_features = data[features_list[27]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[27]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[27]]], axis=1)
 
         if self.feature28.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[28]]
+                self.list_corr_features = data[features_list[28]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[28]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[28]]], axis=1)
 
         if self.feature29.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[29]]
+                self.list_corr_features = data[features_list[29]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[29]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[29]]], axis=1)
 
         try:
             vtest_per = float(self.txtPercentTest.text())
@@ -1347,7 +1561,7 @@ class RandomForest(QMainWindow):
         vtest_per = vtest_per / 100
 
         X_dt =  self.list_corr_features
-        y_dt = attr_data[target_variable]
+        y_dt = data[target_variable]
         X_columns=X_dt.columns.tolist()
         labelencoder_columns= list(set(X_columns) & set(label_encoder_variables))
         one_hot_encoder_columns=list(set(X_columns) & set(hot_encoder_variables))
@@ -1804,183 +2018,183 @@ class DecisionTree(QMainWindow):
         self.list_corr_features = pd.DataFrame([])
         if self.feature0.isChecked():
             if len(self.list_corr_features)==0:
-                self.list_corr_features = attr_data[features_list[0]]
+                self.list_corr_features = data[features_list[0]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[0]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[0]]],axis=1)
 
         if self.feature1.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[1]]
+                self.list_corr_features = data[features_list[1]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[1]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[1]]],axis=1)
 
         if self.feature2.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[2]]
+                self.list_corr_features = data[features_list[2]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[2]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[2]]],axis=1)
 
         if self.feature3.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[3]]
+                self.list_corr_features = data[features_list[3]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[3]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[3]]],axis=1)
 
         if self.feature4.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[4]]
+                self.list_corr_features = data[features_list[4]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[4]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[4]]],axis=1)
 
         if self.feature5.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[5]]
+                self.list_corr_features = data[features_list[5]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[5]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[5]]],axis=1)
 
         if self.feature6.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[6]]
+                self.list_corr_features = data[features_list[6]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[6]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[6]]],axis=1)
 
         if self.feature7.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[7]]
+                self.list_corr_features = data[features_list[7]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[7]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[7]]],axis=1)
 
         if self.feature8.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[8]]
+                self.list_corr_features = data[features_list[8]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[8]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[8]]],axis=1)
 
         if self.feature9.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[9]]
+                self.list_corr_features = data[features_list[9]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[9]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[9]]],axis=1)
 
         if self.feature10.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[10]]
+                self.list_corr_features = data[features_list[10]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[10]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[10]]], axis=1)
 
         if self.feature11.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[11]]
+                self.list_corr_features = data[features_list[11]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[11]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[11]]], axis=1)
 
         if self.feature12.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[12]]
+                self.list_corr_features = data[features_list[12]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[12]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[12]]], axis=1)
 
         if self.feature13.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[13]]
+                self.list_corr_features = data[features_list[13]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[13]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[13]]], axis=1)
 
         if self.feature14.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[14]]
+                self.list_corr_features = data[features_list[14]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[14]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[14]]], axis=1)
 
         if self.feature15.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[15]]
+                self.list_corr_features = data[features_list[15]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[15]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[15]]], axis=1)
 
         if self.feature16.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[16]]
+                self.list_corr_features = data[features_list[16]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[16]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[16]]], axis=1)
 
         if self.feature17.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[17]]
+                self.list_corr_features = data[features_list[17]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[17]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[17]]], axis=1)
 
         if self.feature18.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[18]]
+                self.list_corr_features = data[features_list[18]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[18]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[18]]], axis=1)
 
         if self.feature19.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[19]]
+                self.list_corr_features = data[features_list[19]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[19]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[19]]], axis=1)
 
         if self.feature20.isChecked():
             if len(self.list_corr_features)==0:
-                self.list_corr_features = attr_data[features_list[20]]
+                self.list_corr_features = data[features_list[20]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[20]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[20]]],axis=1)
 
         if self.feature21.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[21]]
+                self.list_corr_features = data[features_list[21]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[21]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[21]]],axis=1)
 
         if self.feature22.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[22]]
+                self.list_corr_features = data[features_list[22]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[22]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[22]]],axis=1)
 
         if self.feature23.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[23]]
+                self.list_corr_features = data[features_list[23]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[23]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[23]]],axis=1)
 
         if self.feature24.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[24]]
+                self.list_corr_features = data[features_list[24]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[24]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[24]]],axis=1)
 
         if self.feature25.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[25]]
+                self.list_corr_features = data[features_list[25]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[25]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[25]]],axis=1)
 
         if self.feature26.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[26]]
+                self.list_corr_features = data[features_list[26]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[26]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[26]]],axis=1)
 
         if self.feature27.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[27]]
+                self.list_corr_features = data[features_list[27]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[27]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[27]]],axis=1)
 
         if self.feature28.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[28]]
+                self.list_corr_features = data[features_list[28]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[28]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[28]]],axis=1)
 
         if self.feature29.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[29]]
+                self.list_corr_features = data[features_list[29]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[29]]],axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[29]]],axis=1)
 
         try:
             vtest_per = float(self.txtPercentTest.text())
@@ -2002,7 +2216,7 @@ class DecisionTree(QMainWindow):
         vtest_per = vtest_per / 100
 
         X_dt =  self.list_corr_features
-        y_dt = attr_data[target_variable]
+        y_dt = data[target_variable]
         X_columns=X_dt.columns.tolist()
         labelencoder_columns= list(set(X_columns) & set(label_encoder_variables))
         one_hot_encoder_columns=list(set(X_columns) & set(hot_encoder_variables))
@@ -2465,183 +2679,183 @@ class LogisticRegressionClassifier(QMainWindow):
         self.list_corr_features = pd.DataFrame([])
         if self.feature0.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[0]]
+                self.list_corr_features = data[features_list[0]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[0]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[0]]], axis=1)
 
         if self.feature1.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[1]]
+                self.list_corr_features = data[features_list[1]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[1]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[1]]], axis=1)
 
         if self.feature2.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[2]]
+                self.list_corr_features = data[features_list[2]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[2]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[2]]], axis=1)
 
         if self.feature3.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[3]]
+                self.list_corr_features = data[features_list[3]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[3]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[3]]], axis=1)
 
         if self.feature4.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[4]]
+                self.list_corr_features = data[features_list[4]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[4]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[4]]], axis=1)
 
         if self.feature5.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[5]]
+                self.list_corr_features = data[features_list[5]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[5]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[5]]], axis=1)
 
         if self.feature6.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[6]]
+                self.list_corr_features = data[features_list[6]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[6]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[6]]], axis=1)
 
         if self.feature7.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[7]]
+                self.list_corr_features = data[features_list[7]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[7]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[7]]], axis=1)
 
         if self.feature8.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[8]]
+                self.list_corr_features = data[features_list[8]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[8]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[8]]], axis=1)
 
         if self.feature9.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[9]]
+                self.list_corr_features = data[features_list[9]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[9]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[9]]], axis=1)
 
         if self.feature10.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[10]]
+                self.list_corr_features = data[features_list[10]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[10]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[10]]], axis=1)
 
         if self.feature11.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[11]]
+                self.list_corr_features = data[features_list[11]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[11]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[11]]], axis=1)
 
         if self.feature12.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[12]]
+                self.list_corr_features = data[features_list[12]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[12]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[12]]], axis=1)
 
         if self.feature13.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[13]]
+                self.list_corr_features = data[features_list[13]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[13]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[13]]], axis=1)
 
         if self.feature14.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[14]]
+                self.list_corr_features = data[features_list[14]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[14]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[14]]], axis=1)
 
         if self.feature15.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[15]]
+                self.list_corr_features = data[features_list[15]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[15]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[15]]], axis=1)
 
         if self.feature16.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[16]]
+                self.list_corr_features = data[features_list[16]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[16]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[16]]], axis=1)
 
         if self.feature17.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[17]]
+                self.list_corr_features = data[features_list[17]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[17]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[17]]], axis=1)
 
         if self.feature18.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[18]]
+                self.list_corr_features = data[features_list[18]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[18]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[18]]], axis=1)
 
         if self.feature19.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[19]]
+                self.list_corr_features = data[features_list[19]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[19]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[19]]], axis=1)
 
         if self.feature20.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[20]]
+                self.list_corr_features = data[features_list[20]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[20]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[20]]], axis=1)
 
         if self.feature21.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[21]]
+                self.list_corr_features = data[features_list[21]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[21]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[21]]], axis=1)
 
         if self.feature22.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[22]]
+                self.list_corr_features = data[features_list[22]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[22]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[22]]], axis=1)
 
         if self.feature23.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[23]]
+                self.list_corr_features = data[features_list[23]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[23]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[23]]], axis=1)
 
         if self.feature24.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[24]]
+                self.list_corr_features = data[features_list[24]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[24]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[24]]], axis=1)
 
         if self.feature25.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[25]]
+                self.list_corr_features = data[features_list[25]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[25]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[25]]], axis=1)
 
         if self.feature26.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[26]]
+                self.list_corr_features = data[features_list[26]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[26]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[26]]], axis=1)
 
         if self.feature27.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[27]]
+                self.list_corr_features = data[features_list[27]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[27]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[27]]], axis=1)
 
         if self.feature28.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[28]]
+                self.list_corr_features = data[features_list[28]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[28]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[28]]], axis=1)
 
         if self.feature29.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[29]]
+                self.list_corr_features = data[features_list[29]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[29]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[29]]], axis=1)
 
         try:
             vtest_per = float(self.txtPercentTest.text())
@@ -2664,7 +2878,7 @@ class LogisticRegressionClassifier(QMainWindow):
         vtest_per = vtest_per / 100
 
         X_dt =  self.list_corr_features
-        y_dt = attr_data[target_variable]
+        y_dt = data[target_variable]
         X_columns=X_dt.columns.tolist()
         labelencoder_columns= list(set(X_columns) & set(label_encoder_variables))
         one_hot_encoder_columns=list(set(X_columns) & set(hot_encoder_variables))
@@ -3123,183 +3337,183 @@ class KNNClassifier(QMainWindow):
         self.list_corr_features = pd.DataFrame([])
         if self.feature0.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[0]]
+                self.list_corr_features = data[features_list[0]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[0]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[0]]], axis=1)
 
         if self.feature1.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[1]]
+                self.list_corr_features = data[features_list[1]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[1]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[1]]], axis=1)
 
         if self.feature2.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[2]]
+                self.list_corr_features = data[features_list[2]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[2]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[2]]], axis=1)
 
         if self.feature3.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[3]]
+                self.list_corr_features = data[features_list[3]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[3]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[3]]], axis=1)
 
         if self.feature4.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[4]]
+                self.list_corr_features = data[features_list[4]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[4]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[4]]], axis=1)
 
         if self.feature5.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[5]]
+                self.list_corr_features = data[features_list[5]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[5]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[5]]], axis=1)
 
         if self.feature6.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[6]]
+                self.list_corr_features = data[features_list[6]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[6]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[6]]], axis=1)
 
         if self.feature7.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[7]]
+                self.list_corr_features = data[features_list[7]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[7]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[7]]], axis=1)
 
         if self.feature8.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[8]]
+                self.list_corr_features = data[features_list[8]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[8]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[8]]], axis=1)
 
         if self.feature9.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[9]]
+                self.list_corr_features = data[features_list[9]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[9]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[9]]], axis=1)
 
         if self.feature10.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[10]]
+                self.list_corr_features = data[features_list[10]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[10]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[10]]], axis=1)
 
         if self.feature11.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[11]]
+                self.list_corr_features = data[features_list[11]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[11]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[11]]], axis=1)
 
         if self.feature12.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[12]]
+                self.list_corr_features = data[features_list[12]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[12]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[12]]], axis=1)
 
         if self.feature13.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[13]]
+                self.list_corr_features = data[features_list[13]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[13]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[13]]], axis=1)
 
         if self.feature14.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[14]]
+                self.list_corr_features = data[features_list[14]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[14]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[14]]], axis=1)
 
         if self.feature15.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[15]]
+                self.list_corr_features = data[features_list[15]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[15]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[15]]], axis=1)
 
         if self.feature16.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[16]]
+                self.list_corr_features = data[features_list[16]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[16]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[16]]], axis=1)
 
         if self.feature17.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[17]]
+                self.list_corr_features = data[features_list[17]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[17]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[17]]], axis=1)
 
         if self.feature18.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[18]]
+                self.list_corr_features = data[features_list[18]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[18]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[18]]], axis=1)
 
         if self.feature19.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[19]]
+                self.list_corr_features = data[features_list[19]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[19]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[19]]], axis=1)
 
         if self.feature20.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[20]]
+                self.list_corr_features = data[features_list[20]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[20]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[20]]], axis=1)
 
         if self.feature21.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[21]]
+                self.list_corr_features = data[features_list[21]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[21]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[21]]], axis=1)
 
         if self.feature22.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[22]]
+                self.list_corr_features = data[features_list[22]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[22]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[22]]], axis=1)
 
         if self.feature23.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[23]]
+                self.list_corr_features = data[features_list[23]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[23]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[23]]], axis=1)
 
         if self.feature24.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[24]]
+                self.list_corr_features = data[features_list[24]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[24]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[24]]], axis=1)
 
         if self.feature25.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[25]]
+                self.list_corr_features = data[features_list[25]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[25]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[25]]], axis=1)
 
         if self.feature26.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[26]]
+                self.list_corr_features = data[features_list[26]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[26]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[26]]], axis=1)
 
         if self.feature27.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[27]]
+                self.list_corr_features = data[features_list[27]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[27]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[27]]], axis=1)
 
         if self.feature28.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[28]]
+                self.list_corr_features = data[features_list[28]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[28]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[28]]], axis=1)
 
         if self.feature29.isChecked():
             if len(self.list_corr_features) == 0:
-                self.list_corr_features = attr_data[features_list[29]]
+                self.list_corr_features = data[features_list[29]]
             else:
-                self.list_corr_features = pd.concat([self.list_corr_features, attr_data[features_list[29]]], axis=1)
+                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[29]]], axis=1)
 
         try:
             vtest_per = float(self.txtPercentTest.text())
@@ -3333,7 +3547,7 @@ class KNNClassifier(QMainWindow):
         vtest_per = vtest_per / 100
 
         X_dt =  self.list_corr_features
-        y_dt = attr_data[target_variable]
+        y_dt = data[target_variable]
         X_columns=X_dt.columns.tolist()
         labelencoder_columns= list(set(X_columns) & set(label_encoder_variables))
         one_hot_encoder_columns=list(set(X_columns) & set(hot_encoder_variables))
@@ -3615,8 +3829,8 @@ class App(QMainWindow):
         # Open and Save File
         #::----------------------------------------
 
-        file1Button = QAction(QIcon('analysis.png'), 'Open File', self)
-        file1Button.setStatusTip('Opens the files')
+        file1Button = QAction(QIcon('analysis.png'), 'Open Data', self)
+        file1Button.setStatusTip('Opens the data')
         file1Button.triggered.connect(self.show_table)
         fileMenu.addAction(file1Button)
 
@@ -3624,6 +3838,11 @@ class App(QMainWindow):
         file2Button.setStatusTip('Variables Information')
         file2Button.triggered.connect(self.variables_info)
         fileMenu.addAction(file2Button)
+
+        file3Button = QAction(QIcon('analysis.png'), 'Open Previous File', self)
+        file3Button.setStatusTip('Opens the file')
+        file3Button.triggered.connect(self.open_previous)
+        fileMenu.addAction(file3Button)
 
 
         fileMenu.addAction(exitButton)
@@ -3715,13 +3934,27 @@ class App(QMainWindow):
         # self.pandasTv.setModel(model)
 
     def variables_info(self):
-        dialog = variablesInfo()
+        dialog = VariableInformation()
         self.dialogs.append(dialog)
         dialog.show()
         # self.pathLE.setText(fileName)
         # df = pd.read_csv(fileName)
         # model = PandasModel(df)
         # self.pandasTv.setModel(model)
+
+    def open_previous(self):
+        fileName, _ = QFileDialog.getOpenFileName(self, "Open File", "", "Shelve Files (*.out.db)");
+        print(fileName)
+        fileName=fileName[:-3]
+        my_shelf = shelve.open(fileName)
+        print(fileName)
+        for key in my_shelf:
+            print(key)
+            try:
+                globals()[key] = my_shelf[key]
+            except:
+                i=1
+        my_shelf.close()
 
     def EDA1(self):
         dialog = VariableDistribution()
@@ -3776,30 +4009,27 @@ def attrition_data():
     # Specifies columns into several buckets such as continuous_features, categorical_features
     # personal_features, organisation_features, commution_features, satisfaction_features
     #::--------------------------------------------------
-    global happiness
-    global attr_data
-    global X
-    global y
-    global features_list
-    global class_names
-    global target_variable
-    global label_encoder_variables
-    global hot_encoder_variables
-    global personal_features
-    global organisation_features
-    global commution_features
-    global satisfaction_features
-    global continuous_features
-    global categorical_features
+    #global data
 
-    #attr_data = pd.read_csv('HR-Employee-Attrition.csv')
+    global features_list
+    #global class_names
+    #global target_variable
+    #global personal_features
+    #global organisation_features
+    #global commution_features
+    #global satisfaction_features
+    global ratio_features
+    global ordinal_features
+    global nominal_features
+
+    #data = pd.read_csv('HR-Employee-Attrition.csv')
     all_columns = data.columns.tolist()
 
-    all_columns.remove("Attrition")
+    #all_columns.remove("Attrition")
     features_list=all_columns.copy()
 
-    target_variable="Attrition"
-    class_names = ['No', 'Yes']
+    #target_variable="Attrition"
+    #class_names = ['No', 'Yes']
     label_encoder_variables =["Education","JobLevel"]
     hot_encoder_variables=["BusinessTravel","Department","EducationField","Gender","JobRole","MaritalStatus","OverTime","StockOptionLevel"]
     personal_features=["Age","Education","EducationField","MaritalStatus","Gender"]
@@ -3813,5 +4043,5 @@ if __name__ == '__main__':
     #::------------------------------------
     # First reads the data then calls for the application
     #::------------------------------------
-    attrition_data()
+    #attrition_data()
     main()
