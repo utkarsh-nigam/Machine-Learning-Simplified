@@ -1774,110 +1774,68 @@ class DecisionTree(QMainWindow):
         self.groupBox1 = QGroupBox('Decision Tree Features')
         self.groupBox1Layout= QGridLayout()   # Grid
         self.groupBox1.setLayout(self.groupBox1Layout)
+        self.groupBox1.setMinimumWidth(400)
 
-        self.feature0 = QCheckBox(features_list[0],self)
-        self.feature1 = QCheckBox(features_list[1],self)
-        self.feature2 = QCheckBox(features_list[2], self)
-        self.feature3 = QCheckBox(features_list[3], self)
-        self.feature4 = QCheckBox(features_list[4],self)
-        self.feature5 = QCheckBox(features_list[5],self)
-        self.feature6 = QCheckBox(features_list[6], self)
-        self.feature7 = QCheckBox(features_list[7], self)
-        self.feature8 = QCheckBox(features_list[8], self)
-        self.feature9 = QCheckBox(features_list[9], self)
-        self.feature10 = QCheckBox(features_list[10], self)
-        self.feature11 = QCheckBox(features_list[11], self)
-        self.feature12 = QCheckBox(features_list[12], self)
-        self.feature13 = QCheckBox(features_list[13], self)
-        self.feature14 = QCheckBox(features_list[14], self)
-        self.feature15 = QCheckBox(features_list[15], self)
-        self.feature16 = QCheckBox(features_list[16], self)
-        self.feature17 = QCheckBox(features_list[17], self)
-        self.feature18 = QCheckBox(features_list[18], self)
-        self.feature19 = QCheckBox(features_list[19], self)
-        self.feature20 = QCheckBox(features_list[20], self)
-        self.feature21 = QCheckBox(features_list[21], self)
-        self.feature22 = QCheckBox(features_list[22], self)
-        self.feature23 = QCheckBox(features_list[23], self)
-        self.feature24 = QCheckBox(features_list[24], self)
-        self.feature25 = QCheckBox(features_list[25], self)
-        self.feature26 = QCheckBox(features_list[26], self)
-        self.feature27 = QCheckBox(features_list[27], self)
-        self.feature28 = QCheckBox(features_list[28], self)
-        self.feature29 = QCheckBox(features_list[29], self)
-        self.feature0.setChecked(True)
-        self.feature1.setChecked(True)
-        self.feature2.setChecked(True)
-        self.feature3.setChecked(True)
-        self.feature4.setChecked(True)
-        self.feature5.setChecked(True)
-        self.feature6.setChecked(True)
-        self.feature7.setChecked(True)
-        self.feature8.setChecked(True)
-        self.feature9.setChecked(True)
-        self.feature10.setChecked(True)
-        self.feature11.setChecked(True)
-        self.feature12.setChecked(True)
-        self.feature13.setChecked(True)
-        self.feature14.setChecked(True)
-        self.feature15.setChecked(True)
-        self.feature16.setChecked(True)
-        self.feature17.setChecked(True)
-        self.feature18.setChecked(True)
-        self.feature19.setChecked(True)
-        self.feature20.setChecked(True)
-        self.feature21.setChecked(True)
-        self.feature22.setChecked(True)
-        self.feature23.setChecked(True)
-        self.feature24.setChecked(True)
-        self.feature25.setChecked(True)
-        self.feature26.setChecked(True)
-        self.feature27.setChecked(True)
-        self.feature28.setChecked(True)
-        self.feature29.setChecked(True)
+        self.featureScrollLayout = QFormLayout()
+        self.featureScrollWidget = QWidget()
+        self.featureScrollWidget.setLayout(self.featureScrollLayout)
+
+        self.featureScrollArea = QScrollArea()
+        self.featureScrollArea.setStyleSheet(font_size_model)
+        self.featureScrollArea.setWidgetResizable(True)
+        self.featureScrollArea.setWidget(self.featureScrollWidget)
+
+        self.featureCurrentCount = 0
+        self.featureDict = dict()
+        while self.featureCurrentCount < len(featuresList):
+            s = "f" + str(self.featureCurrentCount)
+
+            self.featureDict[s] = QFrame()
+            self.featureDict[s + "Layout"] = QGridLayout()
+            self.featureDict[s].setLayout(self.featureDict[s + "Layout"])
+            self.featureDict[s + "Layout"].setContentsMargins(0, 7, 0, 7)
+
+            self.featureDict[s + "CheckBox"] = QCheckBox(featuresList[self.featureCurrentCount], self)
+            self.featureDict[s + "CheckBox"].setMaximumWidth(200)
+
+            self.featureDict[s + "CheckBox"].setChecked(True)
+            self.featureDict[s + "Layout"].addWidget(self.featureDict[s + "CheckBox"], 0, 0, 1, 1)
+            self.featureCurrentCount += 1
+
+            if (self.featureCurrentCount < len(featuresList)):
+                t = "f" + str(self.featureCurrentCount)
+                self.featureDict[t + "CheckBox"] = QCheckBox(featuresList[self.featureCurrentCount], self)
+                self.featureDict[t + "CheckBox"].setMaximumWidth(200)
+                self.featureDict[t + "CheckBox"].setChecked(True)
+                self.featureDict[s + "Layout"].addWidget(self.featureDict[t + "CheckBox"], 0, 1, 1, 1)
+                self.featureCurrentCount += 1
+            else:
+                self.featureDict[s + "Layout"].addWidget(QLabel(""), 0, 1, 1, 1)
+
+            self.featureScrollLayout.addRow(self.featureDict[s])
 
         self.lblPercentTest = QLabel('Percentage for Test :')
         self.lblPercentTest.adjustSize()
+        self.lblPercentTest.setMaximumWidth(200)
 
         self.txtPercentTest = QLineEdit(self)
         self.txtPercentTest.setText("20")
+        self.txtPercentTest.setMaximumWidth(200)
 
         self.btnExecute = QPushButton("Run Model")
         self.btnExecute.clicked.connect(self.update)
+        self.btnExecute.setMaximumWidth(200)
 
-        self.groupBox1Layout.addWidget(self.feature0,0,0,1,1)
-        self.groupBox1Layout.addWidget(self.feature1,0,1,1,1)
-        self.groupBox1Layout.addWidget(self.feature2,1,0,1,1)
-        self.groupBox1Layout.addWidget(self.feature3,1,1,1,1)
-        self.groupBox1Layout.addWidget(self.feature4,2,0,1,1)
-        self.groupBox1Layout.addWidget(self.feature5,2,1,1,1)
-        self.groupBox1Layout.addWidget(self.feature6,3,0,1,1)
-        self.groupBox1Layout.addWidget(self.feature7,3,1,1,1)
-        self.groupBox1Layout.addWidget(self.feature8, 4, 0,1,1)
-        self.groupBox1Layout.addWidget(self.feature9, 4, 1,1,1)
-        self.groupBox1Layout.addWidget(self.feature10, 5, 0,1,1)
-        self.groupBox1Layout.addWidget(self.feature11, 5, 1,1,1)
-        self.groupBox1Layout.addWidget(self.feature12, 6, 0,1,1)
-        self.groupBox1Layout.addWidget(self.feature13, 6, 1,1,1)
-        self.groupBox1Layout.addWidget(self.feature14, 7, 0,1,1)
-        self.groupBox1Layout.addWidget(self.feature15, 7, 1,1,1)
-        self.groupBox1Layout.addWidget(self.feature16, 8, 0,1,1)
-        self.groupBox1Layout.addWidget(self.feature17, 8, 1,1,1)
-        self.groupBox1Layout.addWidget(self.feature18, 9, 0,1,1)
-        self.groupBox1Layout.addWidget(self.feature19, 9, 1,1,1)
-        self.groupBox1Layout.addWidget(self.feature20, 10, 0,1,1)
-        self.groupBox1Layout.addWidget(self.feature21, 10, 1,1,1)
-        self.groupBox1Layout.addWidget(self.feature22, 11, 0,1,1)
-        self.groupBox1Layout.addWidget(self.feature23, 11, 1,1,1)
-        self.groupBox1Layout.addWidget(self.feature24, 12, 0,1,1)
-        self.groupBox1Layout.addWidget(self.feature25, 12, 1,1,1)
-        self.groupBox1Layout.addWidget(self.feature26, 13, 0,1,1)
-        self.groupBox1Layout.addWidget(self.feature27, 13, 1,1,1)
-        self.groupBox1Layout.addWidget(self.feature28, 14, 0,1,1)
-        self.groupBox1Layout.addWidget(self.feature29, 14, 1,1,1)
-        self.groupBox1Layout.addWidget(self.lblPercentTest, 15, 0,1,1)
-        self.groupBox1Layout.addWidget(self.txtPercentTest, 15, 1,1,1)
-        self.groupBox1Layout.addWidget(self.btnExecute, 16, 0,1,2)
+        self.btnSave = QPushButton("Save Model")
+        self.btnSave.clicked.connect(self.saveModel)
+        self.btnSave.setEnabled(False)
+        self.btnSave.setMaximumWidth(200)
+
+        self.groupBox1Layout.addWidget(self.featureScrollArea, 0, 0, 16, 2)
+        self.groupBox1Layout.addWidget(self.lblPercentTest, 16, 0,1,1)
+        self.groupBox1Layout.addWidget(self.txtPercentTest, 16, 1,1,1)
+        self.groupBox1Layout.addWidget(self.btnExecute, 17, 0,1,1)
+        self.groupBox1Layout.addWidget(self.btnSave, 17, 1, 1, 1)
 
         self.groupBox2 = QGroupBox('Results from the model')
         self.groupBox2Layout = QVBoxLayout()
@@ -2013,185 +1971,15 @@ class DecisionTree(QMainWindow):
 
     def update(self):
         self.list_corr_features = pd.DataFrame([])
-        if self.feature0.isChecked():
-            if len(self.list_corr_features)==0:
-                self.list_corr_features = data[features_list[0]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[0]]],axis=1)
+        # self.featureCount=0
 
-        if self.feature1.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[1]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[1]]],axis=1)
-
-        if self.feature2.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[2]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[2]]],axis=1)
-
-        if self.feature3.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[3]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[3]]],axis=1)
-
-        if self.feature4.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[4]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[4]]],axis=1)
-
-        if self.feature5.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[5]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[5]]],axis=1)
-
-        if self.feature6.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[6]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[6]]],axis=1)
-
-        if self.feature7.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[7]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[7]]],axis=1)
-
-        if self.feature8.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[8]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[8]]],axis=1)
-
-        if self.feature9.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[9]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[9]]],axis=1)
-
-        if self.feature10.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[10]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[10]]], axis=1)
-
-        if self.feature11.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[11]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[11]]], axis=1)
-
-        if self.feature12.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[12]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[12]]], axis=1)
-
-        if self.feature13.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[13]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[13]]], axis=1)
-
-        if self.feature14.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[14]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[14]]], axis=1)
-
-        if self.feature15.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[15]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[15]]], axis=1)
-
-        if self.feature16.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[16]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[16]]], axis=1)
-
-        if self.feature17.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[17]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[17]]], axis=1)
-
-        if self.feature18.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[18]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[18]]], axis=1)
-
-        if self.feature19.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[19]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[19]]], axis=1)
-
-        if self.feature20.isChecked():
-            if len(self.list_corr_features)==0:
-                self.list_corr_features = data[features_list[20]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[20]]],axis=1)
-
-        if self.feature21.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[21]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[21]]],axis=1)
-
-        if self.feature22.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[22]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[22]]],axis=1)
-
-        if self.feature23.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[23]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[23]]],axis=1)
-
-        if self.feature24.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[24]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[24]]],axis=1)
-
-        if self.feature25.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[25]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[25]]],axis=1)
-
-        if self.feature26.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[26]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[26]]],axis=1)
-
-        if self.feature27.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[27]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[27]]],axis=1)
-
-        if self.feature28.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[28]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[28]]],axis=1)
-
-        if self.feature29.isChecked():
-            if len(self.list_corr_features) == 0:
-                self.list_corr_features = data[features_list[29]]
-            else:
-                self.list_corr_features = pd.concat([self.list_corr_features, data[features_list[29]]],axis=1)
+        for i in range(len(featuresList)):
+            s = "f" + str(i) + "CheckBox"
+            if (self.featureDict[s].isChecked()):
+                if len(self.list_corr_features) == 0:
+                    self.list_corr_features = data[featuresList[i]]
+                else:
+                    self.list_corr_features = pd.concat([self.list_corr_features, data[featuresList[i]]], axis=1)
 
         try:
             vtest_per = float(self.txtPercentTest.text())
@@ -2212,29 +2000,27 @@ class DecisionTree(QMainWindow):
 
         vtest_per = vtest_per / 100
 
-        X_dt =  self.list_corr_features
-        y_dt = data[target_variable]
-        X_columns=X_dt.columns.tolist()
-        labelencoder_columns= list(set(X_columns) & set(label_encoder_variables))
-        one_hot_encoder_columns=list(set(X_columns) & set(hot_encoder_variables))
+        X_dt = self.list_corr_features
+        y_dt = data[targetVariable]
+        X_columns = X_dt.columns.tolist()
+        labelencoder_columns = list(set(X_columns) & set(ordinalFeatures))
+        one_hot_encoder_columns = list(set(X_columns) & set(nominalFeatures))
 
         class_le = LabelEncoder()
-        class_ohe=OneHotEncoder()
+        class_ohe = OneHotEncoder()
 
         temp = X_columns.copy()
         for ohe_val in one_hot_encoder_columns:
             temp.remove(ohe_val)
-        temp_X_dt=X_dt[temp]
+        temp_X_dt = X_dt[temp]
         for le_val in labelencoder_columns:
             temp_X_dt[le_val] = class_le.fit_transform(temp_X_dt[le_val])
-        X_dt=pd.concat((temp_X_dt,pd.get_dummies(X_dt[one_hot_encoder_columns])),1)
-
+        X_dt = pd.concat((temp_X_dt, pd.get_dummies(X_dt[one_hot_encoder_columns])), 1)
         y_dt = class_le.fit_transform(y_dt)
-
         X_train, X_test, y_train, y_test = train_test_split(X_dt, y_dt, test_size=vtest_per, random_state=500)
 
         # specify decision tree classifier
-        self.clf_dt =DecisionTreeClassifier(criterion="gini")
+        self.clf_dt = DecisionTreeClassifier(criterion="gini")
 
         # perform training
         self.clf_dt.fit(X_train, y_train)
@@ -2261,33 +2047,35 @@ class DecisionTree(QMainWindow):
 
         # precision score
 
-        self.ff_precision_score = precision_score(y_test, y_pred)*100
+        self.ff_precision_score = precision_score(y_test, y_pred,average='micro')*100
         self.txtCurrentPrecision.setText(str(self.ff_precision_score))
 
         # recall score
 
-        self.ff_recall_score = recall_score(y_test, y_pred) * 100
+        self.ff_recall_score = recall_score(y_test, y_pred,average='micro') * 100
         self.txtCurrentRecall.setText(str(self.ff_recall_score))
 
         # f1_score
 
-        self.ff_f1_score = f1_score(y_test, y_pred)
+        self.ff_f1_score = f1_score(y_test, y_pred,average='micro')
         self.txtCurrentF1score.setText(str(self.ff_f1_score))
 
         #::------------------------------------
         ##  Ghaph1 :
         ##  Confusion Matrix
         #::------------------------------------
-        class_names1 = ['','No', 'Yes']
+        class_names1 = list([" "])
+        class_names1 += list(targetClasses)
+        class_names1 = ['\n'.join(wrap(l, 12)) for l in class_names1]
 
-        self.ax1.matshow(conf_matrix, cmap= plt.cm.get_cmap('Blues', 14))
-        self.ax1.set_yticklabels(class_names1)
-        self.ax1.set_xticklabels(class_names1,rotation = 90)
+        self.ax1.matshow(conf_matrix, cmap=plt.cm.get_cmap('Blues', 14))
+        self.ax1.set_yticklabels(class_names1, fontsize=8)
+        self.ax1.set_xticklabels(class_names1, rotation=90, fontsize=8)
         self.ax1.set_xlabel('Predicted label')
         self.ax1.set_ylabel('True label')
 
-        for i in range(len(class_names)):
-            for j in range(len(class_names)):
+        for i in range(len(targetClasses)):
+            for j in range(len(targetClasses)):
                 self.ax1.text(j, i, str(conf_matrix[i][j]))
 
         self.fig.tight_layout()
@@ -2299,14 +2087,14 @@ class DecisionTree(QMainWindow):
 
         dot_data = export_graphviz(self.clf_dt,
                                         feature_names=X_train.columns,
-                                        class_names=['No', 'Yes'],
+                                        class_names=targetClasses,
                                         out_file=None,
                                         filled=True,
                                         rounded=True,
                                         max_depth=3)
 
         graph = graph_from_dot_data(dot_data)
-        colors = ('turquoise', 'orange')
+        colors = ('turquoise', 'orange', 'blue')
         edges = collections.defaultdict(list)
 
         for edge in graph.get_edge_list():
@@ -2336,9 +2124,11 @@ class DecisionTree(QMainWindow):
         f_importances=f_importances[0:10]
         X_Features = f_importances.index
         y_Importance = list(f_importances)
+        X_Features = ['\n'.join(wrap(l, 20)) for l in X_Features]
 
         self.ax3.barh(X_Features, y_Importance )
         self.ax3.set_aspect('auto')
+        self.ax3.tick_params(labelsize=8)
 
         # show the plot
         self.fig3.tight_layout()
@@ -2348,30 +2138,57 @@ class DecisionTree(QMainWindow):
         # Graph 4 - ROC Curve by Class
         #::-----------------------------------------------------
 
-        y_test_bin = pd.get_dummies(y_test).to_numpy()
-        n_classes = y_test_bin.shape[1]
+        if len(targetClasses) > 2:
+            y_test_bin = label_binarize(y_dt, classes=range(len(targetClasses)))
+            n_classes = y_test_bin.shape[1]
+            # print(n_classes)
+            X_train_temp, X_test_temp, y_train_temp, y_test_temp = train_test_split(X_dt, y_test_bin,
+                                                                                    test_size=vtest_per,
+                                                                                    random_state=500)
 
-        fpr = dict()
-        tpr = dict()
-        roc_auc = dict()
-        for i in range(n_classes):
-            fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_pred_score[:, i])
-            roc_auc[i] = auc(fpr[i], tpr[i])
+            classifier = OneVsRestClassifier(self.clf_dt)
+            y_score = classifier.fit(X_train_temp, y_train_temp).predict_proba(X_test_temp)
+            # str_classes = targetClasses
+            fpr = dict()
+            tpr = dict()
+            roc_auc = dict()
+            for i in range(n_classes):
+                fpr[i], tpr[i], _ = roc_curve(y_test_temp[:, i], y_score[:, i])
+                roc_auc[i] = auc(fpr[i], tpr[i])
 
-        # Compute micro-average ROC curve and ROC area
-        fpr["micro"], tpr["micro"], _ = roc_curve(y_test_bin.ravel(), y_pred_score.ravel())
+            for i in range(n_classes):
+                self.ax4.plot(fpr[i], tpr[i],
+                              label='{0} (area = {1:0.2f})'
+                                    ''.format(targetClasses[i], roc_auc[i]))
+        else:
+            y_test_bin = pd.get_dummies(y_test).to_numpy()
+            n_classes = y_test_bin.shape[1]
 
-        roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
-        lw = 2
+            # From the sckict learn site
+            # https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
+            fpr = dict()
+            tpr = dict()
+            roc_auc = dict()
+            for i in range(n_classes):
+                fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_pred_score[:, i])
+                roc_auc[i] = auc(fpr[i], tpr[i])
+            # print(pd.get_dummies(y_test).to_numpy().ravel())
 
-        str_classes= ['No','Yes']
-        colors = cycle(['magenta', 'darkorange'])
-        for i, color in zip(range(n_classes), colors):
-            self.ax4.plot(fpr[i], tpr[i], color=color, lw=lw,
-                     label='{0} (area = {1:0.2f})'
-                           ''.format(str_classes[i], roc_auc[i]))
+            # print("\n\n********************************\n\n")
+            # print(y_pred_score.ravel())
+            # Compute micro-average ROC curve and ROC area
+            fpr["micro"], tpr["micro"], _ = roc_curve(y_test_bin.ravel(), y_pred_score.ravel())
 
-        self.ax4.plot([0, 1], [0, 1], 'k--', lw=lw)
+            roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+            lw = 2
+            str_classes = ['No', 'Yes']
+            colors = cycle(['magenta', 'darkorange'])
+            for i, color in zip(range(n_classes), colors):
+                self.ax4.plot(fpr[i], tpr[i], color=color, lw=lw,
+                              label='{0} (area = {1:0.2f})'
+                                    ''.format(targetClasses[i], roc_auc[i]))
+
+        self.ax4.plot([0, 1], [0, 1], 'k--')
         self.ax4.set_xlim([0.0, 1.0])
         self.ax4.set_ylim([0.0, 1.05])
         self.ax4.set_xlabel('False Positive Rate')
@@ -2403,6 +2220,31 @@ class DecisionTree(QMainWindow):
         y_pred_knn = self.other_clf_knn.predict(X_test)
         self.accuracy_knn = accuracy_score(y_test, y_pred_knn) * 100
         self.txtAccuracy_knn.setText(str(self.accuracy_knn))
+
+        self.btnSave.setEnabled(True)
+
+    def saveModel(self):
+        options = QFileDialog.Options()
+        fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
+                                                  "SAV Files (*.sav)", options=options)
+        if fileName:
+            # print(fileName)
+            # fileName += '.out'
+            pickle.dump(self.clf_rf, open(fileName, 'wb'))
+
+    def multiclass_roc_auc_score(self, y_test, y_pred, average="micro"):
+        lb = LabelBinarizer()
+        lb.fit(y_test)
+        y_test = lb.transform(y_test)
+        y_pred = lb.transform(y_pred)
+        return roc_auc_score(y_test, y_pred, average=average)
+
+    def multiclass_roc_curve(self, y_test, y_pred, average="micro"):
+        lb = LabelBinarizer()
+        lb.fit(y_test)
+        y_test = lb.transform(y_test)
+        y_pred = lb.transform(y_pred)
+        return roc_curve(y_test, y_pred, average=average)
 
 
 class LogisticRegressionClassifier(QMainWindow):
