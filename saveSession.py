@@ -234,6 +234,161 @@ for val in list:
 
 
 
+global i
+
+def t1():
+    global i
+    i=2
+
+def t2():
+    global i
+    i+=2
+
+def t3():
+    global i
+    print(i)
+
+t1()
+t2()
+t3()
+
+
+i=[1,2,3,4,5]
+j=[2,3,4,5,6]
+
+print(i+j)
+
+import textwrap as wrap
+import matplotlib.pyplot as plt
+import numpy as np
+a = np.random.rand(4)
+b = np.random.rand(4)
+c = np.random.rand(4)
+x10 = ["wdfvweilyfbeifbjcb.kjec","ewdeyulc3vcyecbe3ocu3jcl","cju3vc3iekhc31bkcj","iewiebcliecewbcliwe"]
+plt.barh(x10, a, color = 'b', label="A" )
+plt.barh(x10, b, color = 'g', left = a, label="B" )
+plt.barh(x10, c, color = 'r', left = a + b, label="C" )
+plt.yticks(['\n'.join(wrap(l, 12)) for l in x10])
+plt.tick_params(labelsize=8)
+#plt.ylabel(fontdict=)
+plt.legend()
+plt.show()
+print('#',50*"-")
+
+
+a=['Yes', 'No']
+print(sorted(a))
 
 
 
+
+
+
+
+# stacked bar plot
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Get values from the group and categories
+quarter = ["Q1", "Q2", "Q3", "Q4"]
+jeans = [100, 75, 5, 133]
+tshirt = [44, 120, 150, 33]
+formal_shirt = [70, 90, 111, 80]
+
+# add colors
+#colors = ['#FF9999', '#00BFFF', '#C1FFC1', '#CAE1FF', '#FFDEAD']
+# The position of the bars on the x-axis
+r = range(len(quarter))
+barWidth = 0.8
+# plot bars
+plt.figure(figsize=(10, 7))
+ax1 = plt.bar(r, jeans, edgecolor='white', width=barWidth, label="jeans")
+ax2 = plt.bar(r, tshirt, bottom=np.array(jeans), edgecolor='white', width=barWidth, label='tshirt')
+ax3 = plt.bar(r, formal_shirt, bottom=np.array(jeans) + np.array(tshirt), edgecolor='white',
+              width=barWidth, label='formal shirt')
+plt.legend()
+# Custom X axis
+plt.xticks(r, quarter, fontweight='bold')
+plt.ylabel("sales")
+print(ax1)
+for r1, r2, r3 in zip(ax1, ax2, ax3):
+    h1 = r1.get_height()
+    h2 = r2.get_height()
+    h3 = r3.get_height()
+    print (r1,h1)
+    plt.text(r1.get_x() + r1.get_width() / 2., h1 / 2., str(h1)+"k", ha="center", va="center", color="white", fontsize=16,
+             fontweight="bold")
+    plt.text(r2.get_x() + r2.get_width() / 2., h1 + h2 / 2., "%d" % h2, ha="center", va="center", color="white",
+             fontsize=16, fontweight="bold")
+    plt.text(r3.get_x() + r3.get_width() / 2., h1 + h2 + h3 / 2., "%d" % h3, ha="center", va="center", color="white",
+             fontsize=16, fontweight="bold")
+
+plt.show()
+# You can replace "%d" % h1 with "{}".format(h1)
+
+for r1, r2, r3 in zip(ax1, ax2, ax3):
+    h1 = r1.get_height()
+    h2 = r2.get_height()
+    h3 = r3.get_height()
+    print (r1,h1)
+    print(r2, h2)
+    print(r3, h3)
+
+
+
+import matplotlib.pyplot as plt
+from sklearn import svm, datasets
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import label_binarize
+from sklearn.metrics import roc_curve, auc
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.ensemble import RandomForestClassifier
+
+iris = datasets.load_iris()
+print(iris)
+X = iris.data
+y = iris.target
+print (y)
+
+# Binarize the output
+y = label_binarize(y, classes=[0,1,2])
+print(y)
+n_classes = y.shape[1]
+print(y)
+print(n_classes)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.5, random_state=0)
+
+classifier = OneVsRestClassifier(RandomForestClassifier(n_estimators=100))
+y_score = classifier.fit(X_train, y_train).predict_proba(X_test)
+print(y_score)
+fpr = dict()
+tpr = dict()
+roc_auc = dict()
+for i in range(n_classes):
+    fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
+    roc_auc[i] = auc(fpr[i], tpr[i])
+
+for i in range(n_classes):
+    plt.plot(fpr[i], tpr[i],
+             label='ROC curve of class {0} (area = {1:0.2f})'
+             ''.format(i, roc_auc[i]))
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlim([-0.05, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver operating characteristic for multi-class data')
+plt.legend(loc="lower right")
+plt.show()
+
+s=["H" "E"]
+t=[""]
+t+=s
+print(t)
+
+
+from textwrap import wrap
+labels=["efwefwfwqkfjeqwnf1ejfnrocjqerljc", "awejvdfwehfvefhwekfwhfjwf"]
+print(labels)
+labels = ['\n'.join(wrap(l, 20)) for l in labels]
+print(labels)
