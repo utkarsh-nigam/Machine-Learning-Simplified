@@ -32,7 +32,8 @@ import pandas as pd
 import numpy as np
 from numpy.polynomial.polynomial import polyfit
 
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, OrdinalEncoder
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
@@ -1183,67 +1184,6 @@ class RandomForest(QMainWindow):
             self.featureScrollLayout.addRow(self.featureDict[s])
 
 
-        # self.feature0 = QCheckBox(features_list[0],self)
-        # self.feature1 = QCheckBox(features_list[1],self)
-        # self.feature2 = QCheckBox(features_list[2], self)
-        # self.feature3 = QCheckBox(features_list[3], self)
-        # self.feature4 = QCheckBox(features_list[4],self)
-        # self.feature5 = QCheckBox(features_list[5],self)
-        # self.feature6 = QCheckBox(features_list[6], self)
-        # self.feature7 = QCheckBox(features_list[7], self)
-        # self.feature8 = QCheckBox(features_list[8], self)
-        # self.feature9 = QCheckBox(features_list[9], self)
-        # self.feature10 = QCheckBox(features_list[10], self)
-        # self.feature11 = QCheckBox(features_list[11], self)
-        # self.feature12 = QCheckBox(features_list[12], self)
-        # self.feature13 = QCheckBox(features_list[13], self)
-        # self.feature14 = QCheckBox(features_list[14], self)
-        # self.feature15 = QCheckBox(features_list[15], self)
-        # self.feature16 = QCheckBox(features_list[16], self)
-        # self.feature17 = QCheckBox(features_list[17], self)
-        # self.feature18 = QCheckBox(features_list[18], self)
-        # self.feature19 = QCheckBox(features_list[19], self)
-        # self.feature20 = QCheckBox(features_list[20], self)
-        # self.feature21 = QCheckBox(features_list[21], self)
-        # self.feature22 = QCheckBox(features_list[22], self)
-        # self.feature23 = QCheckBox(features_list[23], self)
-        # self.feature24 = QCheckBox(features_list[24], self)
-        # self.feature25 = QCheckBox(features_list[25], self)
-        # self.feature26 = QCheckBox(features_list[26], self)
-        # self.feature27 = QCheckBox(features_list[27], self)
-        # self.feature28 = QCheckBox(features_list[28], self)
-        # self.feature29 = QCheckBox(features_list[29], self)
-        # self.feature0.setChecked(True)
-        # self.feature1.setChecked(True)
-        # self.feature2.setChecked(True)
-        # self.feature3.setChecked(True)
-        # self.feature4.setChecked(True)
-        # self.feature5.setChecked(True)
-        # self.feature6.setChecked(True)
-        # self.feature7.setChecked(True)
-        # self.feature8.setChecked(True)
-        # self.feature9.setChecked(True)
-        # self.feature10.setChecked(True)
-        # self.feature11.setChecked(True)
-        # self.feature12.setChecked(True)
-        # self.feature13.setChecked(True)
-        # self.feature14.setChecked(True)
-        # self.feature15.setChecked(True)
-        # self.feature16.setChecked(True)
-        # self.feature17.setChecked(True)
-        # self.feature18.setChecked(True)
-        # self.feature19.setChecked(True)
-        # self.feature20.setChecked(True)
-        # self.feature21.setChecked(True)
-        # self.feature22.setChecked(True)
-        # self.feature23.setChecked(True)
-        # self.feature24.setChecked(True)
-        # self.feature25.setChecked(True)
-        # self.feature26.setChecked(True)
-        # self.feature27.setChecked(True)
-        # self.feature28.setChecked(True)
-        # self.feature29.setChecked(True)
-
         self.lblPercentTest = QLabel('Percentage for Test :')
         self.lblPercentTest.adjustSize()
         self.lblPercentTest.setMaximumWidth(200)
@@ -1437,15 +1377,15 @@ class RandomForest(QMainWindow):
             self.txtPercentTest.setText(str(vtest_per))
 
         try:
-            estimator_input = round(float(self.txtEstimatorCount.text()))
-            if (estimator_input < 1000 and estimator_input > 0):
+            self.estimator_input = round(float(self.txtEstimatorCount.text()))
+            if (self.estimator_input < 1000 and self.estimator_input > 0):
                 pass
             else:
-                estimator_input = 35
-                self.txtEstimatorCount.setText(str(estimator_input))
+                self.estimator_input = 35
+                self.txtEstimatorCount.setText(str(self.estimator_input))
         except:
-            estimator_input=35
-            self.txtEstimatorCount.setText(str(estimator_input))
+            self.estimator_input=35
+            self.txtEstimatorCount.setText(str(self.estimator_input))
 
         self.ax1.clear()
         self.ax2.clear()
@@ -1459,26 +1399,41 @@ class RandomForest(QMainWindow):
         X_dt =  self.list_corr_features
         y_dt = data[targetVariable]
         X_columns=X_dt.columns.tolist()
-        labelencoder_columns= list(set(X_columns) & set(ordinalFeatures))
-        one_hot_encoder_columns=list(set(X_columns) & set(nominalFeatures))
+        
 
-        class_le = LabelEncoder()
-        class_ohe=OneHotEncoder()
+        self.scale_columns= list(set(X_columns) & set(ratioFeatures))
+        self.ordinalencoder_columns= list(set(X_columns) & set(ordinalFeatures))
+        self.one_hot_encoder_columns=list(set(X_columns) & set(nominalFeatures))
 
-        temp = X_columns.copy()
-        for ohe_val in one_hot_encoder_columns:
-            temp.remove(ohe_val)
-        temp_X_dt=X_dt[temp]
-        for le_val in labelencoder_columns:
-            temp_X_dt[le_val] = class_le.fit_transform(temp_X_dt[le_val])
-        X_dt=pd.concat((temp_X_dt,pd.get_dummies(X_dt[one_hot_encoder_columns])),1)
-        print("Y_DT(Prev): Values:\n", y_dt, "\n\n")
-        y_dt = class_le.fit_transform(y_dt)
-        print("Y_DT(After): Values:\n",y_dt,"\n\n")
+        X_dt = pd.concat((X_dt[self.scale_columns+self.ordinalencoder_columns], pd.get_dummies(X_dt[self.one_hot_encoder_columns])), 1)
+        # print(X_dt.columns)
         X_train, X_test, y_train, y_test = train_test_split(X_dt, y_dt, test_size=vtest_per, random_state=500)
 
+        self.class_ss = StandardScaler()
+        self.class_oe = OrdinalEncoder()
+
+        self.class_ss.fit(X_train[self.scale_columns])
+        X_train[self.scale_columns] = self.class_ss.transform(X_train[self.scale_columns])
+        X_test[self.scale_columns] = self.class_ss.transform(X_test[self.scale_columns])
+
+        self.class_oe.fit(X_train[self.ordinalencoder_columns])
+        X_train[self.ordinalencoder_columns] = self.class_oe.transform(X_train[self.ordinalencoder_columns])
+        X_test[self.ordinalencoder_columns] = self.class_oe.transform(X_test[self.ordinalencoder_columns])
+
+        # temp = X_columns.copy()
+        # for ohe_val in self.one_hot_encoder_columns:
+        #     temp.remove(ohe_val)
+        # temp_X_dt=X_dt[temp]
+        # for le_val in self.ordinalencoder_columns:
+        #     temp_X_dt[le_val] = self.class_oe.fit_transform(temp_X_dt[le_val])
+        # X_dt=pd.concat((temp_X_dt,pd.get_dummies(X_dt[self.one_hot_encoder_columns])),1)
+        # print("Y_DT(Prev): Values:\n", y_dt, "\n\n")
+        # y_dt = self.class_oe.fit_transform(y_dt)
+        # print("Y_DT(After): Values:\n",y_dt,"\n\n")
+        # X_train, X_test, y_train, y_test = train_test_split(X_dt, y_dt, test_size=vtest_per, random_state=500)
+
         # specify random forest classifier
-        self.clf_rf = RandomForestClassifier(n_estimators=estimator_input, random_state=500)
+        self.clf_rf = RandomForestClassifier(n_estimators=self.estimator_input, random_state=500)
 
         # perform training
         self.clf_rf.fit(X_train, y_train)
@@ -1491,7 +1446,7 @@ class RandomForest(QMainWindow):
 
 
         # confusion matrix for RandomForest
-        conf_matrix = confusion_matrix(y_test, y_pred)
+        self.conf_matrix = confusion_matrix(y_test, y_pred)
 
         # clasification report
 
@@ -1526,7 +1481,7 @@ class RandomForest(QMainWindow):
         class_names1+=list(targetClasses)
         class_names1 = ['\n'.join(wrap(l, 12)) for l in class_names1]
 
-        self.ax1.matshow(conf_matrix, cmap= plt.cm.get_cmap('Blues', 14))
+        self.ax1.matshow(self.conf_matrix, cmap= plt.cm.get_cmap('Blues', 14))
         self.ax1.set_yticklabels(class_names1,fontsize=8)
         self.ax1.set_xticklabels(class_names1,rotation = 90,fontsize=8)
         self.ax1.set_xlabel('Predicted label')
@@ -1534,7 +1489,7 @@ class RandomForest(QMainWindow):
 
         for i in range(len(targetClasses)):
             for j in range(len(targetClasses)):
-                self.ax1.text(j, i, str(conf_matrix[i][j]))
+                self.ax1.text(j, i, str(self.conf_matrix[i][j]))
 
         self.fig.tight_layout()
         self.fig.canvas.draw_idle()
@@ -1552,6 +1507,8 @@ class RandomForest(QMainWindow):
             self.rf_graph.fit(X_train, y_train)
             temp_train_pred = self.rf_graph.predict(X_train)
             temp_test_pred = self.rf_graph.predict(X_test)
+            #print(y_train)
+            #print(temp_train_pred)
             # classifier = OneVsRestClassifier(self.rf_graph)
             # y_pred = self.rf_graph.predict(X_train)
             # false_positive_rate, true_positive_rate, thresholds = roc_curve(y_train[:, i], y_score[:, i])
@@ -1606,13 +1563,30 @@ class RandomForest(QMainWindow):
         #::-----------------------------------------------------
 
         if len(targetClasses)>2:
-            y_test_bin = label_binarize(y_dt, classes=range(len(targetClasses)))
+            y_test_bin = label_binarize(y_dt, classes=targetClasses)
             n_classes = y_test_bin.shape[1]
-            print(n_classes)
+            # print(y_dt.shape)
+            # print(y_dt)
+            # print(n_classes)
+            # print(y_test_bin)
             X_train_temp, X_test_temp, y_train_temp, y_test_temp = train_test_split(X_dt, y_test_bin, test_size=vtest_per, random_state=500)
+            self.class_ss_temp = StandardScaler()
+            self.class_oe_temp = OrdinalEncoder()
+
+            self.class_ss_temp.fit(X_train_temp[self.scale_columns])
+            X_train_temp[self.scale_columns] = self.class_ss_temp.transform(X_train_temp[self.scale_columns])
+            X_test_temp[self.scale_columns] = self.class_ss_temp.transform(X_test_temp[self.scale_columns])
+
+            self.class_oe_temp.fit(X_train_temp[self.ordinalencoder_columns])
+            X_train_temp[self.ordinalencoder_columns] = self.class_oe_temp.transform(X_train_temp[self.ordinalencoder_columns])
+            X_test_temp[self.ordinalencoder_columns] = self.class_oe_temp.transform(X_test_temp[self.ordinalencoder_columns])
 
             classifier = OneVsRestClassifier(self.clf_rf)
             y_score = classifier.fit(X_train_temp, y_train_temp).predict_proba(X_test_temp)
+            # print(y_test_temp.shape)
+            # print(y_test_temp)
+            # print(y_score.shape)
+            # print(y_score)
             #str_classes = targetClasses
             fpr = dict()
             tpr = dict()
@@ -1652,7 +1626,7 @@ class RandomForest(QMainWindow):
                 self.ax4.plot(fpr[i], tpr[i], color=color, lw=lw,
                               label='{0} (area = {1:0.2f})'
                                     ''.format(targetClasses[i], roc_auc[i]))
-
+        print(fpr, tpr)
         self.ax4.plot([0, 1], [0, 1], 'k--')
         self.ax4.set_xlim([0.0, 1.0])
         self.ax4.set_ylim([0.0, 1.05])
@@ -1724,6 +1698,15 @@ class RandomForest(QMainWindow):
         self.btnSave.setEnabled(True)
 
     def saveModel(self):
+        self.modelSaveDict={"model":self.clf_rf, "classificationReport":self.ff_class_rep,
+                            "accuracyScore":self.ff_accuracy_score, "allFeatures":featuresList,
+                            "selectedFeatures":self.list_corr_features, "ratioFeatures": self.scale_columns,
+                            "ordinalFeatures": self.ordinalencoder_columns, "nominalFeatures": self.one_hot_encoder_columns,
+                            "standardScalerEncoder": self.class_ss, "ordinalEncoder": self.class_oe,
+                            "targetClasses":targetClasses, "targetVariable": targetVariable, "confusionMatrix":self.conf_matrix,
+                            "dataPreview": data.head(1000),"recallScore": self.ff_recall_score,
+                            "f1Score":self.ff_f1_score, "precisionScore": self.ff_precision_score, "random_state": 500,
+                            "otherInput":{"treesCount": self.estimator_input}}
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
                                                   "SAV Files (*.sav)", options=options)
@@ -2003,20 +1986,22 @@ class DecisionTree(QMainWindow):
         X_dt = self.list_corr_features
         y_dt = data[targetVariable]
         X_columns = X_dt.columns.tolist()
-        labelencoder_columns = list(set(X_columns) & set(ordinalFeatures))
-        one_hot_encoder_columns = list(set(X_columns) & set(nominalFeatures))
 
-        class_le = LabelEncoder()
-        class_ohe = OneHotEncoder()
+        self.scale_columns = list(set(X_columns) & set(ratioFeatures))
+        self.ordinalencoder_columns = list(set(X_columns) & set(ordinalFeatures))
+        self.one_hot_encoder_columns = list(set(X_columns) & set(nominalFeatures))
+
+        self.self.class_oe = OrdinalEncoder()
+        self.class_ohe = OneHotEncoder()
 
         temp = X_columns.copy()
-        for ohe_val in one_hot_encoder_columns:
+        for ohe_val in self.one_hot_encoder_columns:
             temp.remove(ohe_val)
         temp_X_dt = X_dt[temp]
-        for le_val in labelencoder_columns:
-            temp_X_dt[le_val] = class_le.fit_transform(temp_X_dt[le_val])
-        X_dt = pd.concat((temp_X_dt, pd.get_dummies(X_dt[one_hot_encoder_columns])), 1)
-        y_dt = class_le.fit_transform(y_dt)
+        for le_val in self.ordinalencoder_columns:
+            temp_X_dt[le_val] = self.class_oe.fit_transform(temp_X_dt[le_val])
+        X_dt = pd.concat((temp_X_dt, pd.get_dummies(X_dt[self.one_hot_encoder_columns])), 1)
+        y_dt = self.class_oe.fit_transform(y_dt)
         X_train, X_test, y_train, y_test = train_test_split(X_dt, y_dt, test_size=vtest_per, random_state=500)
 
         # specify decision tree classifier
@@ -2033,7 +2018,7 @@ class DecisionTree(QMainWindow):
 
 
         # confusion matrix for Decision Tree
-        conf_matrix = confusion_matrix(y_test, y_pred)
+        self.conf_matrix = confusion_matrix(y_test, y_pred)
 
         # clasification report
 
@@ -2068,7 +2053,7 @@ class DecisionTree(QMainWindow):
         class_names1 += list(targetClasses)
         class_names1 = ['\n'.join(wrap(l, 12)) for l in class_names1]
 
-        self.ax1.matshow(conf_matrix, cmap=plt.cm.get_cmap('Blues', 14))
+        self.ax1.matshow(self.conf_matrix, cmap=plt.cm.get_cmap('Blues', 14))
         self.ax1.set_yticklabels(class_names1, fontsize=8)
         self.ax1.set_xticklabels(class_names1, rotation=90, fontsize=8)
         self.ax1.set_xlabel('Predicted label')
@@ -2076,7 +2061,7 @@ class DecisionTree(QMainWindow):
 
         for i in range(len(targetClasses)):
             for j in range(len(targetClasses)):
-                self.ax1.text(j, i, str(conf_matrix[i][j]))
+                self.ax1.text(j, i, str(self.conf_matrix[i][j]))
 
         self.fig.tight_layout()
         self.fig.canvas.draw_idle()
@@ -2139,7 +2124,7 @@ class DecisionTree(QMainWindow):
         #::-----------------------------------------------------
 
         if len(targetClasses) > 2:
-            y_test_bin = label_binarize(y_dt, classes=range(len(targetClasses)))
+            y_test_bin = label_binarize(y_dt, classes=targetClasses)
             n_classes = y_test_bin.shape[1]
             # print(n_classes)
             X_train_temp, X_test_temp, y_train_temp, y_test_temp = train_test_split(X_dt, y_test_bin,
@@ -2507,20 +2492,22 @@ class LogisticRegressionClassifier(QMainWindow):
         X_dt = self.list_corr_features
         y_dt = data[targetVariable]
         X_columns = X_dt.columns.tolist()
-        labelencoder_columns = list(set(X_columns) & set(ordinalFeatures))
-        one_hot_encoder_columns = list(set(X_columns) & set(nominalFeatures))
 
-        class_le = LabelEncoder()
-        class_ohe = OneHotEncoder()
+        self.scale_columns = list(set(X_columns) & set(ratioFeatures))
+        self.ordinalencoder_columns = list(set(X_columns) & set(ordinalFeatures))
+        self.one_hot_encoder_columns = list(set(X_columns) & set(nominalFeatures))
+
+        self.self.class_oe = OrdinalEncoder()
+        self.class_ohe = OneHotEncoder()
 
         temp = X_columns.copy()
-        for ohe_val in one_hot_encoder_columns:
+        for ohe_val in self.one_hot_encoder_columns:
             temp.remove(ohe_val)
         temp_X_dt = X_dt[temp]
-        for le_val in labelencoder_columns:
-            temp_X_dt[le_val] = class_le.fit_transform(temp_X_dt[le_val])
-        X_dt = pd.concat((temp_X_dt, pd.get_dummies(X_dt[one_hot_encoder_columns])), 1)
-        y_dt = class_le.fit_transform(y_dt)
+        for le_val in self.ordinalencoder_columns:
+            temp_X_dt[le_val] = self.class_oe.fit_transform(temp_X_dt[le_val])
+        X_dt = pd.concat((temp_X_dt, pd.get_dummies(X_dt[self.one_hot_encoder_columns])), 1)
+        y_dt = self.class_oe.fit_transform(y_dt)
         X_train, X_test, y_train, y_test = train_test_split(X_dt, y_dt, test_size=vtest_per, random_state=500)
 
         # specify logistic regression
@@ -2536,7 +2523,7 @@ class LogisticRegressionClassifier(QMainWindow):
         y_pred_score = self.clf_lr.predict_proba(X_test)
 
         # confusion matrix for RandomForest
-        conf_matrix = confusion_matrix(y_test, y_pred)
+        self.conf_matrix = confusion_matrix(y_test, y_pred)
 
         # clasification report
 
@@ -2571,7 +2558,7 @@ class LogisticRegressionClassifier(QMainWindow):
         class_names1 += list(targetClasses)
         class_names1 = ['\n'.join(wrap(l, 12)) for l in class_names1]
 
-        self.ax1.matshow(conf_matrix, cmap=plt.cm.get_cmap('Blues', 14))
+        self.ax1.matshow(self.conf_matrix, cmap=plt.cm.get_cmap('Blues', 14))
         self.ax1.set_yticklabels(class_names1, fontsize=8)
         self.ax1.set_xticklabels(class_names1, rotation=90, fontsize=8)
         self.ax1.set_xlabel('Predicted label')
@@ -2579,7 +2566,7 @@ class LogisticRegressionClassifier(QMainWindow):
 
         for i in range(len(targetClasses)):
             for j in range(len(targetClasses)):
-                self.ax1.text(j, i, str(conf_matrix[i][j]))
+                self.ax1.text(j, i, str(self.conf_matrix[i][j]))
 
         self.fig.tight_layout()
         self.fig.canvas.draw_idle()
@@ -2587,7 +2574,7 @@ class LogisticRegressionClassifier(QMainWindow):
         #::----------------------------------------
         ## Graph 2 - Calibration Curve
         #::----------------------------------------
-        # y_test_bin = label_binarize(y_dt, classes=range(len(targetClasses)))
+        # y_test_bin = label_binarize(y_dt, classes=targetClasses)
         # n_classes = y_test_bin.shape[1]
         # # print(n_classes)
         # X_train_temp, X_test_temp, y_train_temp, y_test_temp = train_test_split(X_dt, y_test_bin,
@@ -2639,7 +2626,7 @@ class LogisticRegressionClassifier(QMainWindow):
         #::-----------------------------------------------------
 
         if len(targetClasses) > 2:
-            y_test_bin = label_binarize(y_dt, classes=range(len(targetClasses)))
+            y_test_bin = label_binarize(y_dt, classes=targetClasses)
             n_classes = y_test_bin.shape[1]
             # print(n_classes)
             X_train_temp, X_test_temp, y_train_temp, y_test_temp = train_test_split(X_dt, y_test_bin,
@@ -3029,21 +3016,23 @@ class KNNClassifier(QMainWindow):
         X_dt = self.list_corr_features
         y_dt = data[targetVariable]
         X_columns = X_dt.columns.tolist()
-        labelencoder_columns = list(set(X_columns) & set(ordinalFeatures))
-        one_hot_encoder_columns = list(set(X_columns) & set(nominalFeatures))
 
-        class_le = LabelEncoder()
-        class_ohe = OneHotEncoder()
+        self.scale_columns = list(set(X_columns) & set(ratioFeatures))
+        self.ordinalencoder_columns = list(set(X_columns) & set(ordinalFeatures))
+        self.one_hot_encoder_columns = list(set(X_columns) & set(nominalFeatures))
+
+        self.class_oe = OrdinalEncoder()
+        self.class_ohe = OneHotEncoder()
 
         temp = X_columns.copy()
-        for ohe_val in one_hot_encoder_columns:
+        for ohe_val in self.one_hot_encoder_columns:
             temp.remove(ohe_val)
         temp_X_dt = X_dt[temp]
-        for le_val in labelencoder_columns:
-            temp_X_dt[le_val] = class_le.fit_transform(temp_X_dt[le_val])
-        X_dt = pd.concat((temp_X_dt, pd.get_dummies(X_dt[one_hot_encoder_columns])), 1)
+        for le_val in self.ordinalencoder_columns:
+            temp_X_dt[le_val] = self.class_oe.fit_transform(temp_X_dt[le_val])
+        X_dt = pd.concat((temp_X_dt, pd.get_dummies(X_dt[self.one_hot_encoder_columns])), 1)
         print("Y_DT(Prev): Values:\n", y_dt, "\n\n")
-        y_dt = class_le.fit_transform(y_dt)
+        y_dt = self.class_oe.fit_transform(y_dt)
         print("Y_DT(After): Values:\n", y_dt, "\n\n")
         X_train, X_test, y_train, y_test = train_test_split(X_dt, y_dt, test_size=vtest_per, random_state=500)
 
@@ -3060,7 +3049,7 @@ class KNNClassifier(QMainWindow):
         y_pred_score = self.clf_knn.predict_proba(X_test)
 
         # confusion matrix for RandomForest
-        conf_matrix = confusion_matrix(y_test, y_pred)
+        self.conf_matrix = confusion_matrix(y_test, y_pred)
 
         # clasification report
 
@@ -3095,7 +3084,7 @@ class KNNClassifier(QMainWindow):
         class_names1 += list(targetClasses)
         class_names1 = ['\n'.join(wrap(l, 12)) for l in class_names1]
 
-        self.ax1.matshow(conf_matrix, cmap=plt.cm.get_cmap('Blues', 14))
+        self.ax1.matshow(self.conf_matrix, cmap=plt.cm.get_cmap('Blues', 14))
         self.ax1.set_yticklabels(class_names1, fontsize=8)
         self.ax1.set_xticklabels(class_names1, rotation=90, fontsize=8)
         self.ax1.set_xlabel('Predicted label')
@@ -3103,7 +3092,7 @@ class KNNClassifier(QMainWindow):
 
         for i in range(len(targetClasses)):
             for j in range(len(targetClasses)):
-                self.ax1.text(j, i, str(conf_matrix[i][j]))
+                self.ax1.text(j, i, str(self.conf_matrix[i][j]))
 
         self.fig.tight_layout()
         self.fig.canvas.draw_idle()
@@ -3170,7 +3159,7 @@ class KNNClassifier(QMainWindow):
         #::-----------------------------------------------------
 
         if len(targetClasses) > 2:
-            y_test_bin = label_binarize(y_dt, classes=range(len(targetClasses)))
+            y_test_bin = label_binarize(y_dt, classes=targetClasses)
             n_classes = y_test_bin.shape[1]
             print(n_classes)
             X_train_temp, X_test_temp, y_train_temp, y_test_temp = train_test_split(X_dt, y_test_bin,
@@ -3278,6 +3267,74 @@ class KNNClassifier(QMainWindow):
         return roc_curve(y_test, y_pred, average=average)
 
 
+class Predict(QMainWindow):
+
+    def __init__(self):
+        super(showTable, self).__init__()
+        self.Title = "Predict"
+        self.initUi()
+
+    def initUi(self):
+        self.setWindowTitle(self.Title)
+        self.setStyleSheet(font_size_window)
+        self.main_widget = QWidget(self)
+        self.layout = QGridLayout(self.main_widget)
+        # self.vLayout = QVBoxLayout()
+        # self.hLayout = QHBoxLayout()
+        self.pathLE = QLineEdit()
+        # self.hLayout.addWidget(self.pathLE)
+        self.loadBtn = QPushButton("Select Model")
+
+        #self.hLayout.addWidget(self.loadBtn)
+        #self.vLayout.addLayout(self.hLayout)
+        self.pandasTv = QTableView()
+        self.rowCount = QComboBox()
+        self.rowCount.addItems(["100", "500", "1000", "5000"])
+        self.rowCount.currentIndexChanged.connect(self.showData)
+        #self.vLayout.addWidget(self.pandasTv)
+        self.layout.addWidget(self.loadBtn, 0, 0, 1, 1)
+        self.layout.addWidget(self.pathLE, 0, 1, 1, 5)
+        self.layout.addWidget(QLabel(""),0,6,1,1)
+        self.layout.addWidget(QLabel("Show Rows:"), 0,7 ,1,1)
+        self.layout.addWidget(self.rowCount, 0, 8, 1, 1)
+
+        self.layout.addWidget(self.pandasTv, 1, 0, 9, 9)
+        #self.loadFile()
+        self.loadBtn.clicked.connect(self.loadFile)
+        self.pandasTv.setSortingEnabled(True)
+        self.setCentralWidget(self.main_widget)
+        self.resize(1800, 900)
+        self.show()
+
+
+
+
+    def loadFile(self):
+
+        fileName, _ = QFileDialog.getOpenFileName(self, "Open File", "", "Pickle Files (*.pkl)");
+        self.pathLE.setText(fileName)
+        self.pickled_file = pickle.load(open(fileName, 'rb'))
+        pickled_model = self.pickled_file["model"]
+        pickled_score = self.pickled_file["score"]
+        self.df = pd.read_csv(fileName)
+        data=self.df.copy()
+        featuresList = data.columns.tolist()
+        featuresDtypes=data.dtypes.tolist()
+        for i in range(len(featuresList)):
+            if (str(featuresDtypes[i])=="int64"):
+                ratioFeatures.append(featuresList[i])
+            else:
+                nominalFeatures.append(featuresList[i])
+        self.showData()
+        #print(df.head())
+    def showData(self):
+        try:
+            model = PandasModel(self.df.head(int(self.rowCount.currentText())))
+            #print(model)
+            self.pandasTv.setModel(model)
+        except:
+            pass
+
 class PlotCanvas(FigureCanvas):
 
     def __init__(self, parent=None, width=5, height=4, dpi=100):
@@ -3351,6 +3408,7 @@ class App(QMainWindow):
         fileMenu = mainMenu.addMenu('File')
         EDAMenu = mainMenu.addMenu('EDA Analysis')
         MLModelMenu = mainMenu.addMenu('ML Models')
+        PredictMenu = mainMenu.addMenu('Predict')
 
 
         #::--------------------------------------
@@ -3367,17 +3425,17 @@ class App(QMainWindow):
         # Open and Save File
         #::----------------------------------------
 
-        file1Button = QAction(QIcon('analysis.png'), 'Open Data', self)
+        file1Button = QAction(QIcon(), 'Open Data', self)
         file1Button.setStatusTip('Opens the data')
         file1Button.triggered.connect(self.show_table)
         fileMenu.addAction(file1Button)
 
-        file2Button = QAction(QIcon('analysis.png'), 'Explore Variables', self)
+        file2Button = QAction(QIcon(), 'Explore Variables', self)
         file2Button.setStatusTip('Variables Information')
         file2Button.triggered.connect(self.variables_info)
         fileMenu.addAction(file2Button)
 
-        file3Button = QAction(QIcon('analysis.png'), 'Open Previous File', self)
+        file3Button = QAction(QIcon(), 'Open Previous File', self)
         file3Button.setStatusTip('Opens the file')
         file3Button.triggered.connect(self.open_previous)
         fileMenu.addAction(file3Button)
@@ -3393,17 +3451,17 @@ class App(QMainWindow):
         # Attrition Relation : Compares the variables on the basis of Attrition Yes and Attrition No
         #::----------------------------------------
 
-        EDA1Button = QAction(QIcon('analysis.png'),'Variable Distribution', self)
+        EDA1Button = QAction(QIcon(),'Variable Distribution', self)
         EDA1Button.setStatusTip('Presents the variable distribution')
         EDA1Button.triggered.connect(self.EDA1)
         EDAMenu.addAction(EDA1Button)
 
-        EDA2Button = QAction(QIcon('analysis.png'), 'Variable Relation', self)
+        EDA2Button = QAction(QIcon(), 'Variable Relation', self)
         EDA2Button.setStatusTip('Presents the relationship between variables')
         EDA2Button.triggered.connect(self.EDA2)
         EDAMenu.addAction(EDA2Button)
 
-        EDA4Button = QAction(QIcon('analysis.png'), 'Attrition Relation', self)
+        EDA4Button = QAction(QIcon(), 'Attrition Relation', self)
         EDA4Button.setStatusTip('Compares the variables with respect to Attrition')
         EDA4Button.triggered.connect(self.EDA4)
         EDAMenu.addAction(EDA4Button)
@@ -3448,6 +3506,15 @@ class App(QMainWindow):
         MLModelMenu.addAction(MLModel2Button)
         MLModelMenu.addAction(MLModel3Button)
         MLModelMenu.addAction(MLModel4Button)
+
+        #::----------------------------------------
+        # Open and Use the Model for Prediction
+        #::----------------------------------------
+
+        predictButton = QAction(QIcon(), 'Choose Model & Predict', self)
+        predictButton.setStatusTip('Opens the presaved model')
+        predictButton.triggered.connect(self.predictFunction)
+        PredictMenu.addAction(predictButton)
 
         self.dialogs = list()
 
@@ -3523,6 +3590,11 @@ class App(QMainWindow):
 
     def MLKNN(self):
         dialog = KNNClassifier()
+        self.dialogs.append(dialog)
+        dialog.show()
+
+    def predictFunction(self):
+        dialog = Predict()
         self.dialogs.append(dialog)
         dialog.show()
 

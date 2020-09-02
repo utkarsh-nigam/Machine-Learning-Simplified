@@ -539,3 +539,101 @@ plt.xlim(-0.05, 1.05)
 plt.ylim(-0.05, 1.05)
 
 plt.show()
+
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+import pickle
+# Load and split data
+data = load_iris()
+Xtrain, Xtest, Ytrain, Ytest = train_test_split(data.data, data.target, test_size=0.3, random_state=4)
+# Create a model
+model = LogisticRegression(C=0.1,
+                           max_iter=20,
+                           fit_intercept=True,
+                           n_jobs=3,
+                           solver='liblinear')
+model.fit(Xtrain, Ytrain)
+
+score = model.score(Xtest, Ytest)
+print("Test score: {0:.2f} %".format(100 * score))
+
+tuple_objects = {"model":model, "score":score}
+pickle.dump(tuple_objects, open("tuple_model.pkl", 'wb'))
+
+
+
+
+
+
+pickled_file = pickle.load(open("tuple_model.pkl", 'rb'))
+pickled_model=pickled_file["model"]
+pickled_score=pickled_file["score"]
+print(pickled_score)
+score = pickled_model.score(Xtest, Ytest)
+print(score)
+
+
+
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn import datasets
+import pandas as pd
+import numpy as np
+data=pd.DataFrame()
+data["C1"]=np.arange(0,5)
+data["C2"]=np.arange(20,25)
+data["C3"]=np.array([0,1,0,2,1])
+data["C4"]=np.array([3,1,0,2,3])
+data["C5"]=np.array(["C1","C3","C3","C2","C2"])
+data["C6"]=np.array(["P2","P1","P1","P2","P3"])
+data["Target"]=np.array(["T2","T3","T3","T2","T1"])
+col1=["C1","C2"]
+col2=["C3","C4"]
+col3=["C5","C6"]
+targetVariable="Target"
+print(data)
+# temp_X_dt =pd.get_dummies(data[["C5","C6"]])
+X_dt = pd.concat((data[col1+col2], pd.get_dummies(data[col3])), 1)
+print(X_dt)
+y_dt=data[targetVariable]
+
+X_train, X_test, y_train, y_test = train_test_split(X_dt, y_dt, test_size=0.2, random_state=500)
+
+ss=StandardScaler()
+oe=OrdinalEncoder()
+
+ss.fit(X_train[col1])
+X_train[col1]=ss.transform(X_train[col1])
+X_test[col1]=ss.transform(X_test[col1])
+
+oe.fit(X_train[col2])
+X_train[col2]=oe.transform(X_train[col2])
+X_test[col2]=oe.transform(X_test[col2])
+
+print(X_train)
+print(X_test)
+
+print(X_train[col2].dtypes)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
