@@ -1,3 +1,4 @@
+'''
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QWidget, QPushButton, QAction, QComboBox, QLabel,
                              QGridLayout, QCheckBox, QGroupBox, QVBoxLayout, QHBoxLayout, QLineEdit, QPlainTextEdit,
                              QInputDialog, QFileDialog, QTableView, QFormLayout, QScrollArea, QSpinBox)
@@ -153,7 +154,90 @@ dataTypeDict={"int64":"Continuous","object":"Categorical"}
 for val in list:
     print(dataTypeDict[str(val)])
 
+'''
 
+# !/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import sys
+from PyQt5.QtGui import QIcon
+
+from PyQt5.QtCore import (QDate, QDateTime, QRegExp, QSortFilterProxyModel, Qt,
+                          QTime)
+from PyQt5.QtGui import QStandardItemModel
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QGridLayout,
+                             QGroupBox, QHBoxLayout, QLabel, QLineEdit, QTreeView, QVBoxLayout,
+                             QWidget)
+
+
+class App(QWidget):
+    FROM, SUBJECT, DATE = range(3)
+
+    def __init__(self):
+        super().__init__()
+        self.title = 'PyQt5 Treeview Example - pythonspot.com'
+        self.left = 10
+        self.top = 10
+        self.width = 640
+        self.height = 240
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
+
+        self.dataGroupBox = QGroupBox("Inbox")
+        self.dataView = QTreeView()
+        self.dataView.setRootIsDecorated(False)
+        # self.dataView.setAlternatingRowColors(True)
+
+        dataLayout = QHBoxLayout()
+        dataLayout.addWidget(self.dataView)
+        self.dataGroupBox.setLayout(dataLayout)
+
+        # model = self.createMailModel(self)
+        self.model=QStandardItemModel(0, 3)
+        self.model.setHeaderData(0, Qt.Horizontal, "From")
+        self.model.setHeaderData(1, Qt.Horizontal, "Subject")
+        self.model.setHeaderData(2, Qt.Horizontal, "Date")
+        self.dataView.setModel(self.model)
+        self.addMail('service@github.com', 'Your Github Donation', '03/25/2017 02:05 PM')
+        self.addMail('support@github.com', 'Github Projects', '02/02/2017 03:05 PM')
+        self.addMail('service@phone.com', 'Your Phone Bill', '01/01/2017 04:05 PM')
+        self.addMail('service@github.com', 'Your Github Donation', '03/25/2017 02:05 PM')
+        self.addMail('support@github.com', 'Github Projects', '02/02/2017 03:05 PM')
+        self.addMail('service@phone.com', 'Your Phone Bill', '01/01/2017 04:05 PM')
+        self.addMail('service@github.com', 'Your Github Donation', '03/25/2017 02:05 PM')
+        self.addMail('support@github.com', 'Github Projects', '02/02/2017 03:05 PM')
+        self.addMail('service@phone.com', 'Your Phone Bill', '01/01/2017 04:05 PM')
+        self.addMail('service@github.com', 'Your Github Donation', '03/25/2017 02:05 PM')
+        self.addMail('support@github.com', 'Github Projects', '02/02/2017 03:05 PM')
+        self.addMail('service@phone.com', 'Your Phone Bill', '01/01/2017 04:05 PM')
+
+        mainLayout = QVBoxLayout()
+        mainLayout.addWidget(self.dataGroupBox)
+        self.setLayout(mainLayout)
+
+        self.show()
+
+    # def createMailModel(self, parent):
+    #     model = QStandardItemModel(0, 3, parent)
+    #     model.setHeaderData(self.FROM, Qt.Horizontal, "From")
+    #     model.setHeaderData(self.SUBJECT, Qt.Horizontal, "Subject")
+    #     model.setHeaderData(self.DATE, Qt.Horizontal, "Date")
+    #     return model
+
+    def addMail(self, mailFrom, subject, date):
+        self.model.insertRow(0)
+        self.model.setData(self.model.index(0, 0), mailFrom)
+        self.model.setData(self.model.index(0, 1), subject)
+        self.model.setData(self.model.index(0, 2), date)
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = App()
+    sys.exit(app.exec_())
 
 
 

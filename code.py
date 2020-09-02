@@ -13,9 +13,9 @@ import pickle
 
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QWidget, QPushButton, QAction, QComboBox, QLabel, QFrame,
                              QGridLayout, QCheckBox, QGroupBox, QVBoxLayout, QHBoxLayout, QLineEdit, QPlainTextEdit,
-                             QInputDialog, QFileDialog, QTableView, QSpinBox)
+                             QInputDialog, QFileDialog, QTableView, QSpinBox, QTreeView)
 
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QStandardItemModel
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import Qt, QAbstractTableModel, QVariant, QModelIndex
@@ -312,7 +312,7 @@ class VariableInformation(QMainWindow):
         self.setStyleSheet(font_size_window)
         self.layout = QGridLayout(self.main_widget)
 
-        self.viewWidget=QGroupBox('Categorise Variables')
+        self.viewWidget=QGroupBox()
         self.viewWidgetLayout = QGridLayout()
         self.viewWidget.setLayout(self.viewWidgetLayout)
 
@@ -504,6 +504,8 @@ class VariableInformation(QMainWindow):
             self.featureDict[s + "TypeList"] = QComboBox()
             self.featureDict[s + "TypeList"].addItems(["Continuous", "Categorical", "Ordinal"])
             self.featureDict[s + "TypeList"].setCurrentText(dataTypeDict[str(featuresDtypes[self.featureCurrentCount])])
+            if (dataTypeDict[str(featuresDtypes[self.featureCurrentCount])]=="Categorical"):
+                self.featureDict[s + "TypeList"].setEnabled(False)
 
             self.featureDict[s + "catList"] = QComboBox()
             self.featureDict[s + "catList"].addItems(categoryNameList)
@@ -1698,7 +1700,7 @@ class RandomForest(QMainWindow):
         self.btnSave.setEnabled(True)
 
     def saveModel(self):
-        self.modelSaveDict={"model":self.clf_rf, "classificationReport":self.ff_class_rep,
+        self.modelSaveDict={"modelName": self.Title, "model":self.clf_rf, "classificationReport":self.ff_class_rep,
                             "accuracyScore":self.ff_accuracy_score, "allFeatures":featuresList,
                             "selectedFeatures":self.list_corr_features, "ratioFeatures": self.scale_columns,
                             "ordinalFeatures": self.ordinalencoder_columns, "nominalFeatures": self.one_hot_encoder_columns,
@@ -3270,7 +3272,7 @@ class KNNClassifier(QMainWindow):
 class Predict(QMainWindow):
 
     def __init__(self):
-        super(showTable, self).__init__()
+        super(Predict, self).__init__()
         self.Title = "Predict"
         self.initUi()
 
@@ -3279,54 +3281,161 @@ class Predict(QMainWindow):
         self.setStyleSheet(font_size_window)
         self.main_widget = QWidget(self)
         self.layout = QGridLayout(self.main_widget)
-        # self.vLayout = QVBoxLayout()
-        # self.hLayout = QHBoxLayout()
+
+        self.selectModelWidget = QGroupBox()
+        self.selectModelWidgetLayout = QGridLayout()
+        self.selectModelWidget.setLayout(self.selectModelWidgetLayout)
+        self.selectModelWidget.setMinimumWidth(300)
+
+        self.modelDetailsWidget = QGroupBox()
+        self.modelDetailsWidgetLayout = QGridLayout()
+        self.modelDetailsWidget.setLayout(self.modelDetailsWidgetLayout)
+        self.modelDetailsWidget.setMinimumWidth(300)
+        # self.modelDetailsWidget.setEnabled(False)
+
+        self.modelFeaturesWidget = QGroupBox()
+        self.modelFeaturesWidgetLayout = QGridLayout()
+        self.modelFeaturesWidget.setLayout(self.modelFeaturesWidgetLayout)
+        self.modelFeaturesWidget.setMinimumWidth(300)
+        self.modelFeaturesWidget.setEnabled(False)
+
+        self.modelPerformance1Widget = QGroupBox()
+        self.modelPerformance1WidgetLayout = QGridLayout()
+        self.modelPerformance1Widget.setLayout(self.modelPerformance1WidgetLayout)
+        self.modelPerformance1Widget.setMinimumWidth(300)
+        self.modelPerformance1Widget.setEnabled(False)
+
+        self.modelPerformance2Widget = QGroupBox()
+        self.modelPerformance2WidgetLayout = QGridLayout()
+        self.modelPerformance2Widget.setLayout(self.modelPerformance2WidgetLayout)
+        self.modelPerformance2Widget.setMinimumWidth(300)
+        self.modelPerformance2Widget.setEnabled(False)
+
+        # self.modelPerformance3Widget = QGroupBox()
+        # self.modelPerformance3WidgetLayout = QGridLayout()
+        # self.modelPerformance3Widget.setLayout(self.modelPerformance3WidgetLayout)
+        # self.modelPerformance3Widget.setEnabled(False)
+
+        self.modelDataPreviewWidget = QGroupBox()
+        self.modelDataPreviewWidgetLayout = QGridLayout()
+        self.modelDataPreviewWidget.setLayout(self.modelDataPreviewWidgetLayout)
+        self.modelDataPreviewWidget.setMinimumWidth(600)
+        self.modelDataPreviewWidget.setEnabled(False)
+
+
+
+
+        self.modelSelectButton = QPushButton("Select Model")
+        self.modelSelectButton.clicked.connect(self.loadModel)
+
         self.pathLE = QLineEdit()
-        # self.hLayout.addWidget(self.pathLE)
-        self.loadBtn = QPushButton("Select Model")
+        self.pathLE.setEnabled(False)
 
-        #self.hLayout.addWidget(self.loadBtn)
-        #self.vLayout.addLayout(self.hLayout)
+        self.modelPredictButton = QPushButton("Use for Prediction")
+        self.modelPredictButton.clicked.connect(self.modelPredictFunction)
+        self.modelPredictButton.setEnabled(False)
+
+
+        self.modelShowName=QLineEdit()
+        self.targetShowName = QLineEdit()
+
+        self.modelAccuracy=QLineEdit()
+        self.modelPrecision=QLineEdit()
+        self.modelRecall=QLineEdit()
+        self.modelF1Score=QLineEdit()
+
+        self.selectModelWidgetLayout.addWidget(self.modelSelectButton, 0,0,1,1)
+        self.selectModelWidgetLayout.addWidget(self.modelPredictButton, 0, 1, 1, 1)
+        self.selectModelWidgetLayout.addWidget(self.pathLE, 1, 0, 1, 2)
+
+        self.modelDetailsWidgetLayout.addWidget(QLabel("Model Name"),0,0,1,1)
+        self.modelDetailsWidgetLayout.addWidget(self.modelShowName, 0, 1, 1, 2)
+        self.modelDetailsWidgetLayout.addWidget(QLabel("Target Variable"), 1, 0, 1, 1)
+        self.modelDetailsWidgetLayout.addWidget(self.targetShowName, 1, 1, 1, 2)
+        # self.modelDetailsWidgetLayout.addWidget(QLabel("Target Classes"), 2, 0, 1, 1)
+        # self.modelDetailsWidgetLayout.addWidget(self.targetClassShowName, 2, 1, 1, 2)
+
+        self.modelFeatureList = QTreeView()
+        self.modelFeatureList.setRootIsDecorated(False)
+
+        self.featureModel= QStandardItemModel(0, 2)
+        self.featureModel.setHeaderData(0, Qt.Horizontal, "Feature")
+        self.featureModel.setHeaderData(1, Qt.Horizontal, "Type")
+        self.modelFeatureList.setModel(self.featureModel)
+        self.featureDetailWidgetLayout.addWidget(self.modelFeatureList, 0, 0, 1, 1)
+
+        self.modelPerformance1WidgetLayout.addWidget(QLabel("Accuracy"), 0, 0, 1, 1)
+        self.modelPerformance1WidgetLayout.addWidget(self.modelAccuracy, 0, 1, 1, 2)
+        self.modelPerformance1WidgetLayout.addWidget(QLabel("Precision"), 1, 0, 1, 1)
+        self.modelPerformance1WidgetLayout.addWidget(self.modelPrecision, 1, 1, 1, 2)
+        self.modelPerformance1WidgetLayout.addWidget(QLabel("Recall"), 2, 0, 1, 1)
+        self.modelPerformance1WidgetLayout.addWidget(self.modelRecall, 2, 1, 1, 2)
+        self.modelPerformance1WidgetLayout.addWidget(QLabel("F1Score"), 3, 0, 1, 1)
+        self.modelPerformance1WidgetLayout.addWidget(self.modelF1Score, 3, 1, 1, 2)
+
+        self.modelClassificationReport = QPlainTextEdit()
+        self.modelPerformance2WidgetLayout.addWidget(self.modelClassificationReport, 0, 0, 1, 1)
+
+
+
+        self.fig = Figure()
+        self.ax1 = self.fig.add_subplot(111)
+        self.axes = [self.ax1]
+        self.canvas = FigureCanvas(self.fig)
+        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.canvas.updateGeometry()
+
+        self.modelPerformance3Widget = QGroupBox('Confusion Matrix')
+        self.modelPerformance3WidgetLayout = QVBoxLayout()
+        self.modelPerformance3Widget.setLayout(self.modelPerformance3WidgetLayout)
+
+        self.modelPerformance3WidgetLayout.addWidget(self.canvas)
+        self.modelPerformance2Widget.setMinimumWidth(300)
+        self.modelPerformance3Widget.setEnabled(False)
+
+
         self.pandasTv = QTableView()
-        self.rowCount = QComboBox()
-        self.rowCount.addItems(["100", "500", "1000", "5000"])
-        self.rowCount.currentIndexChanged.connect(self.showData)
-        #self.vLayout.addWidget(self.pandasTv)
-        self.layout.addWidget(self.loadBtn, 0, 0, 1, 1)
-        self.layout.addWidget(self.pathLE, 0, 1, 1, 5)
-        self.layout.addWidget(QLabel(""),0,6,1,1)
-        self.layout.addWidget(QLabel("Show Rows:"), 0,7 ,1,1)
-        self.layout.addWidget(self.rowCount, 0, 8, 1, 1)
 
-        self.layout.addWidget(self.pandasTv, 1, 0, 9, 9)
-        #self.loadFile()
-        self.loadBtn.clicked.connect(self.loadFile)
+
+
+
+
+        self.layout.addWidget(self.selectModelWidget, 0, 0, 2, 1)
+        self.layout.addWidget(self.modelDetailsWidget, 0, 1, 2, 1)
+        self.layout.addWidget(self.modelFeaturesWidget, 2, 0, 3, 1)
+        self.layout.addWidget(self.modelPerformance1Widget, 2, 1, 3, 1)
+        self.layout.addWidget(self.modelPerformance2Widget, 5, 0, 5, 1)
+        self.layout.addWidget(self.modelPerformance3Widget, 5, 1, 5, 1)
+        self.layout.addWidget(self.modelDataPreviewWidget, 0, 2, 10, 2)
         self.pandasTv.setSortingEnabled(True)
         self.setCentralWidget(self.main_widget)
         self.resize(1800, 900)
         self.show()
 
 
-
-
-    def loadFile(self):
+    def loadModel(self):
 
         fileName, _ = QFileDialog.getOpenFileName(self, "Open File", "", "Pickle Files (*.pkl)");
-        self.pathLE.setText(fileName)
-        self.pickled_file = pickle.load(open(fileName, 'rb'))
-        pickled_model = self.pickled_file["model"]
-        pickled_score = self.pickled_file["score"]
-        self.df = pd.read_csv(fileName)
-        data=self.df.copy()
-        featuresList = data.columns.tolist()
-        featuresDtypes=data.dtypes.tolist()
-        for i in range(len(featuresList)):
-            if (str(featuresDtypes[i])=="int64"):
-                ratioFeatures.append(featuresList[i])
-            else:
-                nominalFeatures.append(featuresList[i])
-        self.showData()
-        #print(df.head())
+        if fileName:
+            self.pathLE.setEnabled(True)
+            self.pathLE.setText(fileName)
+            self.loadedModel = pickle.load(open(fileName, 'rb'))
+            self.showModelDetails()
+
+    def showModelDetails(self):
+        self.modelDetailsWidget.setEnabled(True)
+        self.modelFeaturesWidget.setEnabled(True)
+        self.modelPerformance1Widget.setEnabled(True)
+        self.modelPerformance2Widget.setEnabled(True)
+        self.modelPerformance3Widget.setEnabled(True)
+        self.modelDataPreviewWidget.setEnabled(True)
+
+        self.modelShowName.setText(self.loadedModel["modelName"])
+        self.modelShowName.setText(self.loadedModel["modelName"])
+
+
+
+
     def showData(self):
         try:
             model = PandasModel(self.df.head(int(self.rowCount.currentText())))
@@ -3335,6 +3444,8 @@ class Predict(QMainWindow):
         except:
             pass
 
+    def modelPredictFunction(self):
+        i=1;
 class PlotCanvas(FigureCanvas):
 
     def __init__(self, parent=None, width=5, height=4, dpi=100):
