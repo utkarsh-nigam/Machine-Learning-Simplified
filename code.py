@@ -1401,7 +1401,11 @@ class RandomForest(QMainWindow):
         X_dt =  self.list_corr_features
         y_dt = data[targetVariable]
         X_columns=X_dt.columns.tolist()
-        
+        self.selectedColumns=X_columns.copy()
+
+        self.class_ss = StandardScaler()
+        self.class_oe = OrdinalEncoder()
+        self.class_le = LabelEncoder()
 
         self.scale_columns= list(set(X_columns) & set(ratioFeatures))
         self.ordinalencoder_columns= list(set(X_columns) & set(ordinalFeatures))
@@ -1409,10 +1413,10 @@ class RandomForest(QMainWindow):
 
         X_dt = pd.concat((X_dt[self.scale_columns+self.ordinalencoder_columns], pd.get_dummies(X_dt[self.one_hot_encoder_columns])), 1)
         # print(X_dt.columns)
+        y_dt = self.class_le.fit_transform(y_dt)
+        # print(y_dt)
         X_train, X_test, y_train, y_test = train_test_split(X_dt, y_dt, test_size=vtest_per, random_state=500)
 
-        self.class_ss = StandardScaler()
-        self.class_oe = OrdinalEncoder()
 
         self.class_ss.fit(X_train[self.scale_columns])
         X_train[self.scale_columns] = self.class_ss.transform(X_train[self.scale_columns])
@@ -1462,17 +1466,17 @@ class RandomForest(QMainWindow):
 
         # precision score
 
-        self.ff_precision_score = precision_score(y_test, y_pred,average='micro')*100
+        self.ff_precision_score = precision_score(y_test, y_pred, average='weighted')*100
         self.txtCurrentPrecision.setText(str(self.ff_precision_score))
 
         # recall score
 
-        self.ff_recall_score = recall_score(y_test, y_pred,average='micro') * 100
+        self.ff_recall_score = recall_score(y_test, y_pred, average='weighted') * 100
         self.txtCurrentRecall.setText(str(self.ff_recall_score))
 
         # f1_score
 
-        self.ff_f1_score = f1_score(y_test, y_pred, average='micro')
+        self.ff_f1_score = f1_score(y_test, y_pred, average='weighted')
         self.txtCurrentF1score.setText(str(self.ff_f1_score))
 
         #::------------------------------------
@@ -1520,6 +1524,8 @@ class RandomForest(QMainWindow):
                 # false_positive_rate, true_positive_rate, thresholds = roc_curve(y_test[:, i], y_score[:, i])
                 auc_test.append(self.multiclass_roc_auc_score(y_test,temp_test_pred))
             else:
+                # print(y_train)
+                # print(temp_train_pred)
                 false_positive_rate, true_positive_rate, thresholds = roc_curve(y_train, temp_train_pred)
                 auc_train.append(auc(false_positive_rate, true_positive_rate))
                 false_positive_rate, true_positive_rate, thresholds = roc_curve(y_test, temp_test_pred)
@@ -1565,7 +1571,7 @@ class RandomForest(QMainWindow):
         #::-----------------------------------------------------
 
         if len(targetClasses)>2:
-            y_test_bin = label_binarize(y_dt, classes=targetClasses)
+            y_test_bin = label_binarize(y_dt, classes=np.unique(y_dt))
             n_classes = y_test_bin.shape[1]
             # print(y_dt.shape)
             # print(y_dt)
@@ -1622,13 +1628,12 @@ class RandomForest(QMainWindow):
 
             roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
             lw = 2
-            str_classes = ['No', 'Yes']
             colors = cycle(['magenta', 'darkorange'])
             for i, color in zip(range(n_classes), colors):
                 self.ax4.plot(fpr[i], tpr[i], color=color, lw=lw,
                               label='{0} (area = {1:0.2f})'
                                     ''.format(targetClasses[i], roc_auc[i]))
-        print(fpr, tpr)
+        # print(fpr, tpr)
         self.ax4.plot([0, 1], [0, 1], 'k--')
         self.ax4.set_xlim([0.0, 1.0])
         self.ax4.set_ylim([0.0, 1.05])
@@ -1702,20 +1707,20 @@ class RandomForest(QMainWindow):
     def saveModel(self):
         self.modelSaveDict={"modelName": self.Title, "model":self.clf_rf, "classificationReport":self.ff_class_rep,
                             "accuracyScore":self.ff_accuracy_score, "allFeatures":featuresList,
-                            "selectedFeatures":self.list_corr_features, "ratioFeatures": self.scale_columns,
+                            "selectedFeatures":self.selectedColumns, "ratioFeatures": self.scale_columns,
                             "ordinalFeatures": self.ordinalencoder_columns, "nominalFeatures": self.one_hot_encoder_columns,
-                            "standardScalerEncoder": self.class_ss, "ordinalEncoder": self.class_oe,
+                            "standardScalerEncoder": self.class_ss, "ordinalEncoder": self.class_oe, "labelEncoder": self.class_le,
                             "targetClasses":targetClasses, "targetVariable": targetVariable, "confusionMatrix":self.conf_matrix,
-                            "dataPreview": data.head(1000),"recallScore": self.ff_recall_score,
+                            "dataPreview": self.list_corr_features.head(1000),"recallScore": self.ff_recall_score,
                             "f1Score":self.ff_f1_score, "precisionScore": self.ff_precision_score, "random_state": 500,
                             "otherInput":{"treesCount": self.estimator_input}}
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
-                                                  "SAV Files (*.sav)", options=options)
+                                                  "Pickle Files (*.pkl)", options=options)
         if fileName:
             # print(fileName)
             # fileName += '.out'
-            pickle.dump(self.clf_rf, open(fileName, 'wb'))
+            pickle.dump(self.modelSaveDict, open(fileName, 'wb'))
 
     def multiclass_roc_auc_score(self, y_test, y_pred, average="micro"):
         lb = LabelBinarizer()
@@ -3282,33 +3287,38 @@ class Predict(QMainWindow):
         self.main_widget = QWidget(self)
         self.layout = QGridLayout(self.main_widget)
 
-        self.selectModelWidget = QGroupBox()
+        self.selectModelWidget = QFrame()
         self.selectModelWidgetLayout = QGridLayout()
         self.selectModelWidget.setLayout(self.selectModelWidgetLayout)
-        self.selectModelWidget.setMinimumWidth(300)
+        self.selectModelWidget.setMinimumWidth(150)
+        self.selectModelWidget.setMaximumWidth(500)
 
-        self.modelDetailsWidget = QGroupBox()
+        self.modelDetailsWidget = QFrame()
         self.modelDetailsWidgetLayout = QGridLayout()
         self.modelDetailsWidget.setLayout(self.modelDetailsWidgetLayout)
-        self.modelDetailsWidget.setMinimumWidth(300)
-        # self.modelDetailsWidget.setEnabled(False)
+        self.modelDetailsWidget.setMinimumWidth(150)
+        self.modelDetailsWidget.setMaximumWidth(500)
+        self.modelDetailsWidget.setEnabled(False)
 
-        self.modelFeaturesWidget = QGroupBox()
+        self.modelFeaturesWidget = QGroupBox("Feature Details")
         self.modelFeaturesWidgetLayout = QGridLayout()
         self.modelFeaturesWidget.setLayout(self.modelFeaturesWidgetLayout)
-        self.modelFeaturesWidget.setMinimumWidth(300)
+        self.modelFeaturesWidget.setMinimumWidth(150)
+        self.modelFeaturesWidget.setMaximumWidth(500)
         self.modelFeaturesWidget.setEnabled(False)
 
-        self.modelPerformance1Widget = QGroupBox()
+        self.modelPerformance1Widget = QGroupBox("Performance Indicators")
         self.modelPerformance1WidgetLayout = QGridLayout()
         self.modelPerformance1Widget.setLayout(self.modelPerformance1WidgetLayout)
-        self.modelPerformance1Widget.setMinimumWidth(300)
+        self.modelPerformance1Widget.setMinimumWidth(150)
+        self.modelPerformance1Widget.setMaximumWidth(500)
         self.modelPerformance1Widget.setEnabled(False)
 
-        self.modelPerformance2Widget = QGroupBox()
+        self.modelPerformance2Widget = QGroupBox("Classification Report")
         self.modelPerformance2WidgetLayout = QGridLayout()
         self.modelPerformance2Widget.setLayout(self.modelPerformance2WidgetLayout)
-        self.modelPerformance2Widget.setMinimumWidth(300)
+        self.modelPerformance2Widget.setMinimumWidth(150)
+        self.modelPerformance2Widget.setMaximumWidth(500)
         self.modelPerformance2Widget.setEnabled(False)
 
         # self.modelPerformance3Widget = QGroupBox()
@@ -3316,10 +3326,10 @@ class Predict(QMainWindow):
         # self.modelPerformance3Widget.setLayout(self.modelPerformance3WidgetLayout)
         # self.modelPerformance3Widget.setEnabled(False)
 
-        self.modelDataPreviewWidget = QGroupBox()
+        self.modelDataPreviewWidget = QGroupBox("Data Preview")
         self.modelDataPreviewWidgetLayout = QGridLayout()
         self.modelDataPreviewWidget.setLayout(self.modelDataPreviewWidgetLayout)
-        self.modelDataPreviewWidget.setMinimumWidth(600)
+        self.modelDataPreviewWidget.setMinimumWidth(700)
         self.modelDataPreviewWidget.setEnabled(False)
 
 
@@ -3359,10 +3369,11 @@ class Predict(QMainWindow):
         self.modelFeatureList.setRootIsDecorated(False)
 
         self.featureModel= QStandardItemModel(0, 2)
-        self.featureModel.setHeaderData(0, Qt.Horizontal, "Feature")
-        self.featureModel.setHeaderData(1, Qt.Horizontal, "Type")
+        self.featureModel.setHeaderData(0, Qt.Horizontal, "Type")
+        self.featureModel.setHeaderData(1, Qt.Horizontal, "Feature Name")
         self.modelFeatureList.setModel(self.featureModel)
-        self.featureDetailWidgetLayout.addWidget(self.modelFeatureList, 0, 0, 1, 1)
+        self.modelFeatureList.setAlternatingRowColors(True)
+        self.modelFeaturesWidgetLayout.addWidget(self.modelFeatureList, 0, 0, 1, 1)
 
         self.modelPerformance1WidgetLayout.addWidget(QLabel("Accuracy"), 0, 0, 1, 1)
         self.modelPerformance1WidgetLayout.addWidget(self.modelAccuracy, 0, 1, 1, 2)
@@ -3390,12 +3401,15 @@ class Predict(QMainWindow):
         self.modelPerformance3Widget.setLayout(self.modelPerformance3WidgetLayout)
 
         self.modelPerformance3WidgetLayout.addWidget(self.canvas)
-        self.modelPerformance2Widget.setMinimumWidth(300)
+        self.modelPerformance3Widget.setMinimumWidth(150)
+        self.modelPerformance3Widget.setMaximumWidth(500)
         self.modelPerformance3Widget.setEnabled(False)
 
 
         self.pandasTv = QTableView()
-
+        self.modelDataPreviewWidgetLayout.addWidget(self.pandasTv, 0, 0, 1, 1)
+        # self.loadFile()
+        self.pandasTv.setSortingEnabled(True)
 
 
 
@@ -3407,7 +3421,6 @@ class Predict(QMainWindow):
         self.layout.addWidget(self.modelPerformance2Widget, 5, 0, 5, 1)
         self.layout.addWidget(self.modelPerformance3Widget, 5, 1, 5, 1)
         self.layout.addWidget(self.modelDataPreviewWidget, 0, 2, 10, 2)
-        self.pandasTv.setSortingEnabled(True)
         self.setCentralWidget(self.main_widget)
         self.resize(1800, 900)
         self.show()
@@ -3429,17 +3442,61 @@ class Predict(QMainWindow):
         self.modelPerformance2Widget.setEnabled(True)
         self.modelPerformance3Widget.setEnabled(True)
         self.modelDataPreviewWidget.setEnabled(True)
+        self.modelPredictButton.setEnabled(True)
 
-        self.modelShowName.setText(self.loadedModel["modelName"])
-        self.modelShowName.setText(self.loadedModel["modelName"])
+        self.modelShowName.setText(str(self.loadedModel["modelName"]))
+        self.targetShowName.setText(str(self.loadedModel["targetVariable"]))
+        for featureValue in self.loadedModel["selectedFeatures"]:
+            if featureValue in self.loadedModel["ratioFeatures"]:
+                featureType="Ratio"
+            elif featureValue in self.loadedModel["nominalFeatures"]:
+                featureType = "Nominal"
+            else:
+                featureType = "Ordinal"
 
+            self.featureModel.insertRow(0)
+            self.featureModel.setData(self.featureModel.index(0, 0), featureType)
+            self.featureModel.setData(self.featureModel.index(0, 1), featureValue)
+
+        self.modelFeatureList.setSortingEnabled(True)
+        self.modelFeatureList.sortByColumn(0, Qt.AscendingOrder)
+
+        self.modelAccuracy.setText(str(self.loadedModel["accuracyScore"]))
+        self.modelPrecision.setText(str(self.loadedModel["precisionScore"]))
+        self.modelRecall.setText(str(self.loadedModel["recallScore"]))
+        self.modelF1Score.setText(str(self.loadedModel["f1Score"]))
+
+        self.modelClassificationReport.clear()
+        self.modelClassificationReport.setUndoRedoEnabled(False)
+
+        self.modelClassificationReport.appendPlainText(self.loadedModel["classificationReport"])
+
+        class_names1 = list([" "])
+        class_names1 += list(self.loadedModel["targetClasses"])
+        class_names1 = ['\n'.join(wrap(l, 12)) for l in class_names1]
+
+        self.conf_matrix=self.loadedModel["confusionMatrix"]
+        self.ax1.matshow(self.conf_matrix, cmap=plt.cm.get_cmap('Blues', 14))
+        self.ax1.set_yticklabels(class_names1, fontsize=8)
+        self.ax1.set_xticklabels(class_names1, rotation=90, fontsize=8)
+        self.ax1.set_xlabel('Predicted label')
+        self.ax1.set_ylabel('True label')
+
+        for i in range(len(self.loadedModel["targetClasses"])):
+            for j in range(len(self.loadedModel["targetClasses"])):
+                self.ax1.text(j, i, str(self.conf_matrix[i][j]))
+
+        self.fig.tight_layout()
+        self.fig.canvas.draw_idle()
+        self.dataPreview=self.loadedModel["dataPreview"]
+        self.showData()
 
 
 
     def showData(self):
         try:
-            model = PandasModel(self.df.head(int(self.rowCount.currentText())))
-            #print(model)
+            model = PandasModel(self.dataPreview)
+            print(model)
             self.pandasTv.setModel(model)
         except:
             pass

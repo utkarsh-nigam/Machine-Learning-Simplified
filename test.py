@@ -189,7 +189,7 @@ class App(QWidget):
         self.dataGroupBox = QGroupBox("Inbox")
         self.dataView = QTreeView()
         self.dataView.setRootIsDecorated(False)
-        # self.dataView.setAlternatingRowColors(True)
+        self.dataView.setAlternatingRowColors(True)
 
         dataLayout = QHBoxLayout()
         dataLayout.addWidget(self.dataView)
@@ -229,7 +229,8 @@ class App(QWidget):
 
     def addMail(self, mailFrom, subject, date):
         self.model.insertRow(0)
-        self.model.setData(self.model.index(0, 0), mailFrom)
+        self.model.setData(self.model.index(0, 0), mailFrom, PyQT5.QtGui.QBrush(
+               QtCore.Qt.red))
         self.model.setData(self.model.index(0, 1), subject)
         self.model.setData(self.model.index(0, 2), date)
 
