@@ -13,7 +13,7 @@ import pickle
 
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QWidget, QPushButton, QAction, QComboBox, QLabel, QFrame,
                              QGridLayout, QCheckBox, QGroupBox, QVBoxLayout, QHBoxLayout, QLineEdit, QPlainTextEdit,
-                             QInputDialog, QFileDialog, QTableView, QSpinBox, QTreeView)
+                             QInputDialog, QFileDialog, QTableView, QSpinBox, QTreeView, QMessageBox)
 
 from PyQt5.QtGui import QIcon, QStandardItemModel
 from PyQt5.QtCore import pyqtSlot
@@ -1412,7 +1412,7 @@ class RandomForest(QMainWindow):
         self.one_hot_encoder_columns=list(set(X_columns) & set(nominalFeatures))
 
         X_dt = pd.concat((X_dt[self.scale_columns+self.ordinalencoder_columns], pd.get_dummies(X_dt[self.one_hot_encoder_columns])), 1)
-        # print(X_dt.columns)
+        self.modelColumns=X_dt.columns.tolist()
         y_dt = self.class_le.fit_transform(y_dt)
         # print(y_dt)
         X_train, X_test, y_train, y_test = train_test_split(X_dt, y_dt, test_size=vtest_per, random_state=500)
@@ -1706,7 +1706,7 @@ class RandomForest(QMainWindow):
 
     def saveModel(self):
         self.modelSaveDict={"modelName": self.Title, "model":self.clf_rf, "classificationReport":self.ff_class_rep,
-                            "accuracyScore":self.ff_accuracy_score, "allFeatures":featuresList,
+                            "accuracyScore":self.ff_accuracy_score, "allFeatures":featuresList,"modelFeatures":self.modelColumns,
                             "selectedFeatures":self.selectedColumns, "ratioFeatures": self.scale_columns,
                             "ordinalFeatures": self.ordinalencoder_columns, "nominalFeatures": self.one_hot_encoder_columns,
                             "standardScalerEncoder": self.class_ss, "ordinalEncoder": self.class_oe, "labelEncoder": self.class_le,
@@ -1722,14 +1722,14 @@ class RandomForest(QMainWindow):
             # fileName += '.out'
             pickle.dump(self.modelSaveDict, open(fileName, 'wb'))
 
-    def multiclass_roc_auc_score(self, y_test, y_pred, average="micro"):
+    def multiclass_roc_auc_score(self, y_test, y_pred, average="weighted"):
         lb = LabelBinarizer()
         lb.fit(y_test)
         y_test = lb.transform(y_test)
         y_pred = lb.transform(y_pred)
         return roc_auc_score(y_test, y_pred, average=average)
 
-    def multiclass_roc_curve(self, y_test, y_pred, average="micro"):
+    def multiclass_roc_curve(self, y_test, y_pred, average="weighted"):
         lb = LabelBinarizer()
         lb.fit(y_test)
         y_test = lb.transform(y_test)
@@ -3274,6 +3274,140 @@ class KNNClassifier(QMainWindow):
         return roc_curve(y_test, y_pred, average=average)
 
 
+class predictFunction(QMainWindow,):
+    def __init__(self,modelFile):
+        super(predictFunction, self).__init__()
+        self.modelDetails = modelFile
+        self.Title = "Predict"
+        self.initUi()
+
+    def initUi(self):
+        # print(self.modelDetails)
+        self.setWindowTitle(self.Title)
+        self.setStyleSheet(font_size_window)
+        self.main_widget = QWidget(self)
+        self.layout = QGridLayout(self.main_widget)
+        # self.vLayout = QVBoxLayout()
+        # self.hLayout = QHBoxLayout()
+        self.featuresRemovedList = QLineEdit()
+        self.featuresRemovedList.setEnabled(False)
+        self.featuresAddedList = QLineEdit()
+        self.featuresAddedList.setEnabled(False)
+
+        self.savePredictOutput = QPushButton("Save Results")
+        self.savePredictOutput.clicked.connect(self.saveResults)
+        self.savePredictOutput.setEnabled(False)
+        # self.hLayout.addWidget(self.pathLE)
+        #self.loadBtn = QPushButton("Select File")
+
+        #self.hLayout.addWidget(self.loadBtn)
+        #self.vLayout.addLayout(self.hLayout)
+        self.pandasTv = QTableView()
+        self.pandasTv.setEnabled(False)
+        self.rowCount = QComboBox()
+        self.rowCount.addItems(["100", "500", "1000", "5000"])
+        self.rowCount.currentIndexChanged.connect(self.showData)
+        self.rowCount.setEnabled(False)
+        #self.vLayout.addWidget(self.pandasTv)
+        self.layout.addWidget(QLabel("Features Removed:"), 0, 0, 1, 2)
+        self.layout.addWidget(self.featuresRemovedList, 0, 2, 1, 6)
+        self.layout.addWidget(QLabel(""), 0, 8, 1, 1)
+        self.layout.addWidget(QLabel("Features Added:"), 0, 9, 1, 2)
+        self.layout.addWidget(self.featuresAddedList, 0,11, 1, 6)
+        self.layout.addWidget(QLabel(""), 0, 17, 1, 1)
+        self.layout.addWidget(QLabel("Show Rows:"), 0,18 ,1,2)
+        self.layout.addWidget(self.rowCount, 0,20, 1, 2)
+        self.layout.addWidget(self.savePredictOutput, 0, 22, 1, 4)
+
+        self.layout.addWidget(self.pandasTv, 1, 0, 9, 26)
+        #self.loadFile()
+        self.pandasTv.setSortingEnabled(True)
+        self.setCentralWidget(self.main_widget)
+        self.resize(1800, 900)
+        self.show()
+        self.selectFile()
+
+    def selectFile(self):
+        fileName, _ = QFileDialog.getOpenFileName(self, "Open File", "", "CSV Files (*.csv)");
+        try:
+            self.inputFile = pd.read_csv(fileName)
+            self.preprocessFile()
+        except Exception as e:
+            DisplayError("Error: Loading Input File", "Select file again (Error: "+str(e)+")")
+
+    def preprocessFile(self):
+        try:
+            self.inputFileColumns=self.inputFile.columns.tolist()
+            self.ratioFeaturesAvailable= list(set(self.inputFileColumns) & set(self.modelDetails["ratioFeatures"]))
+            self.ordinalFeaturesAvailable = list(set(self.inputFileColumns) & set(self.modelDetails["ordinalFeatures"]))
+            self.nominalFeaturesAvailable = list(set(self.inputFileColumns) & set(self.modelDetails["nominalFeatures"]))
+
+            self.finalModelInput = pd.concat((self.inputFile[self.ratioFeaturesAvailable + self.ordinalFeaturesAvailable],
+                                              pd.get_dummies(self.inputFile[self.nominalFeaturesAvailable])), 1)
+
+            self.finalModelInput[self.ratioFeaturesAvailable] = self.modelDetails["standardScalerEncoder"].transform(
+                self.finalModelInput[self.ratioFeaturesAvailable])
+            print(self.ordinalFeaturesAvailable)
+            # print(self.modelDetails["ordinalFeatures"])
+            # self.finalModelInput[self.ordinalFeaturesAvailable] = self.modelDetails["ordinalEncoder"].transform(
+            #     self.finalModelInput[self.ordinalFeaturesAvailable])
+
+            self.availableFeatures = self.finalModelInput.columns.tolist()
+            self.missingFeatures = list(set(self.modelDetails["modelFeatures"]) - set(self.availableFeatures))
+            self.additionalFeatures = list(set(self.availableFeatures) - set(self.modelDetails["modelFeatures"]))
+
+            self.finalModelInput.drop(columns=self.additionalFeatures, inplace=True)
+            for colName in self.missingFeatures:
+                self.finalModelInput[colName] = 0
+
+            self.finalModelInput = self.finalModelInput[self.modelDetails["modelFeatures"]]
+            self.featuresRemovedList.setText(', '.join(self.additionalFeatures))
+            self.featuresAddedList.setText(', '.join(self.missingFeatures))
+            self.doPredict()
+        except Exception as e:
+            DisplayError("Error: Pre Processing Data", "Check and Load Data Again (Error: "+str(e)+")")
+
+    def doPredict(self):
+        try:
+            self.predictedClasses=self.modelDetails["model"].predict(self.finalModelInput)
+            self.predictedClassesProb = self.modelDetails["model"].predict_proba(self.finalModelInput)
+            self.predictedClasses=self.modelDetails["labelEncoder"].inverse_transform(self.predictedClasses)
+            self.displayPredictedData = pd.DataFrame(data=self.predictedClasses, columns=["PredictedClass"])
+            self.tempList=[]
+            for predictedClasses in list(self.modelDetails["labelEncoder"].classes_):
+                self.displayPredictedData["Prob_"+predictedClasses]=0
+                self.tempList.append("Prob_"+predictedClasses)
+
+            self.displayPredictedData[self.tempList]=self.predictedClassesProb
+            self.displayPredictedData=pd.concat((self.displayPredictedData,self.inputFile), 1)
+            # print(self.displayPredictedData.head())
+            self.rowCount.setEnabled(True)
+            self.savePredictOutput.setEnabled(True)
+            self.featuresRemovedList.setEnabled(True)
+            self.featuresAddedList.setEnabled(True)
+            self.showData()
+        except Exception as e:
+            DisplayError("Error: Predicting Classes", "Try Again (Error: "+str(e)+")")
+
+    def showData(self):
+        try:
+            self.pandasTv.setEnabaled(True)
+            model = PandasModel(self.displayPredictedData.head(int(self.rowCount.currentText())))
+            #print(model)
+            self.pandasTv.setModel(model)
+        except Exception as e:
+            DisplayError("Error: Previewing Data", "Try Again (Error: "+str(e)+")")
+
+    def saveResults(self):
+        options = QFileDialog.Options()
+        fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
+                                                  "CSV Files (*.csv)", options=options)
+        if fileName:
+            self.displayPredictedData.to_csv(fileName,index=False)
+
+
+
+
 class Predict(QMainWindow):
 
     def __init__(self):
@@ -3429,11 +3563,13 @@ class Predict(QMainWindow):
     def loadModel(self):
 
         fileName, _ = QFileDialog.getOpenFileName(self, "Open File", "", "Pickle Files (*.pkl)");
-        if fileName:
+        try:
             self.pathLE.setEnabled(True)
             self.pathLE.setText(fileName)
             self.loadedModel = pickle.load(open(fileName, 'rb'))
             self.showModelDetails()
+        except Exception as e:
+            DisplayError("Error: Loading Model",e)
 
     def showModelDetails(self):
         self.modelDetailsWidget.setEnabled(True)
@@ -3502,7 +3638,28 @@ class Predict(QMainWindow):
             pass
 
     def modelPredictFunction(self):
-        i=1;
+        # print(self.loadedModel)
+        self.w = predictFunction(self.loadedModel)
+        self.w.show()
+
+class DisplayError(QMessageBox):
+    def __init__(self,errorTitle, errorMessage):
+        super(DisplayError, self).__init__()
+        print("Here")
+        self.messageHead=errorTitle
+        self.messageBody = errorMessage
+        self.initUi()
+
+    def initUi(self):
+
+        self.msg = QMessageBox()
+        self.msg.setIcon(QMessageBox.Critical)
+        self.msg.setText(self.messageHead)
+        self.msg.setInformativeText(self.messageBody)
+        self.msg.setWindowTitle("Error")
+        self.msg.exec_()
+
+
 class PlotCanvas(FigureCanvas):
 
     def __init__(self, parent=None, width=5, height=4, dpi=100):

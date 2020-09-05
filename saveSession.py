@@ -624,6 +624,56 @@ print(X_train[col2].dtypes)
 
 
 
+import sys
+from PyQt5.QtWidgets import QWidget, QProgressBar, QPushButton, QApplication
+from PyQt5.QtCore import QBasicTimer
+
+class ProgressBarDemo(QWidget):
+	def __init__(self):
+		super().__init__()
+
+		self.progressBar = QProgressBar(self)
+		self.progressBar.setGeometry(30, 40, 200, 25)
+
+		self.btnStart = QPushButton('Start', self)
+		self.btnStart.move(30, 80)
+		self.btnStart.clicked.connect(self.startProgress)
+
+		self.btnReset = QPushButton('Reset', self)
+		self.btnReset.move(120, 80)
+		self.btnReset.clicked.connect(self.resetBar)
+
+		self.timer = QBasicTimer()
+		self.step = 0
+
+	def resetBar(self):
+		self.step = 0
+		self.progressBar.setValue(0)
+
+	def startProgress(self):
+		if self.timer.isActive():
+			self.timer.stop()
+			self.btnStart.setText('Start')
+		else:
+			self.timer.start(100, self)
+			self.btnStart.setText('Stop')
+
+	def timerEvent(self, event):
+		if self.step >= 100:
+			self.timer.stop()
+			self.btnStart.setText('Start')
+			return
+
+		self.step +=1
+		self.progressBar.setValue(self.step)
+
+if __name__=='__main__':
+	app = QApplication(sys.argv)
+
+	demo = ProgressBarDemo()
+	demo.show()
+
+	sys.exit(app.exec_())
 
 
 
@@ -631,6 +681,72 @@ print(X_train[col2].dtypes)
 
 
 
+
+
+
+
+
+import pandas as pd
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import datasets
+import pandas as pd
+import numpy as np
+
+
+df=pd.read_csv("HR-Employee-Attrition.csv")
+print(df.columns)
+colList=df.columns.tolist()
+colList.remove("Department")
+colList.remove("JobRole")
+
+X_data=df[colList]
+y_data=df["Department"]
+le=LabelEncoder()
+y_data=le.fit_transform(y_data)
+
+print(y_data)
+
+continuous_features=["Age","DistanceFromHome","DailyRate","HourlyRate","MonthlyIncome","MonthlyRate","NumCompaniesWorked","PercentSalaryHike","TotalWorkingYears","TrainingTimesLastYear","YearsAtCompany","YearsInCurrentRole","YearsSinceLastPromotion","YearsWithCurrManager"]
+categorical_features=list(set(colList) - set(continuous_features))
+
+X_data=pd.concat((X_data[continuous_features],pd.get_dummies(X_data[categorical_features])),1)
+
+X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size=0.2, random_state=500)
+
+X_test.to_csv("file1.csv", index=False)
+X_train.to_csv("file2.csv", index=False)
+
+model=RandomForestClassifier()
+model.fit(X_train,y_train)
+
+X_test.drop(columns=["Age","DistanceFromHome","DailyRate","HourlyRate","MonthlyIncome"],inplace=True)
+
+y_predict=model.predict(X_test)
+print(y_predict)
+
+
+y_predictprob=model.predict_proba(X_test)
+print(y_predictprob)
+y_predict=le.inverse_transform(y_predict)
+# print(le.inverse_transform(y_predict))
+
+predictedData=pd.DataFrame(data=y_predict,columns=["PredictedClass"])
+
+
+predictedDataNew=pd.DataFrame(data=y_predict,columns=["PredictedClass"])
+predictedDataNew["Class1"]=""
+predictedDataNew["Class2"]=""
+predictedDataNew["Class3"]=""
+predictedDataNew[["Class1","Class2","Class3"]]=model.predict_proba(X_test)
+
+
+le.classes_
 
 
 

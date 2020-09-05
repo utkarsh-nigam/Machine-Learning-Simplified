@@ -167,7 +167,7 @@ from PyQt5.QtCore import (QDate, QDateTime, QRegExp, QSortFilterProxyModel, Qt,
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QGridLayout,
                              QGroupBox, QHBoxLayout, QLabel, QLineEdit, QTreeView, QVBoxLayout,
-                             QWidget)
+                             QWidget, QErrorMessage, QMessageBox)
 
 
 class App(QWidget):
@@ -194,6 +194,14 @@ class App(QWidget):
         dataLayout = QHBoxLayout()
         dataLayout.addWidget(self.dataView)
         self.dataGroupBox.setLayout(dataLayout)
+
+        self.msg = QMessageBox()
+        self.msg.setIcon(QMessageBox.Critical)
+        self.msg.setText("Title1")
+        self.msg.setInformativeText('djqlw dk/jwedm')
+        self.msg.setWindowTitle("Title2")
+        self.msg.show()
+
 
         # model = self.createMailModel(self)
         self.model=QStandardItemModel(0, 3)
@@ -229,8 +237,7 @@ class App(QWidget):
 
     def addMail(self, mailFrom, subject, date):
         self.model.insertRow(0)
-        self.model.setData(self.model.index(0, 0), mailFrom, PyQT5.QtGui.QBrush(
-               QtCore.Qt.red))
+        self.model.setData(self.model.index(0, 0), mailFrom)
         self.model.setData(self.model.index(0, 1), subject)
         self.model.setData(self.model.index(0, 2), date)
 
